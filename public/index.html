@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Azul - Dashboard de Projetos</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <span class="logo-icon">✈</span>
+        <h1>Meu Azul</h1>
+      </div>
+      <p class="subtitle">Dashboard de Projetos - Colaboradores</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="form-section">
+      <h2>Cadastrar Novo Projeto</h2>
+      <form id="projectForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="nome">Nome do Projeto *</label>
+            <input type="text" id="nome" required placeholder="Ex: Otimização de Rotas">
+          </div>
+          <div class="form-group">
+            <label for="setor">Setor *</label>
+            <select id="setor" required>
+              <option value="">Selecione...</option>
+              <option value="Operações">Operações</option>
+              <option value="Manutenção">Manutenção</option>
+              <option value="Marketing">Marketing</option>
+              <option value="TI">TI</option>
+              <option value="RH">RH</option>
+              <option value="Financeiro">Financeiro</option>
+              <option value="Comercial">Comercial</option>
+              <option value="Logística">Logística</option>
+              <option value="Segurança">Segurança</option>
+              <option value="Atendimento">Atendimento</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <label for="descricao">Descrição do Projeto *</label>
+            <textarea id="descricao" required placeholder="Descreva o objetivo, escopo e entregas do projeto..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="prazo">Prazo *</label>
+            <input type="date" id="prazo" required>
+          </div>
+          <div class="form-group">
+            <label for="equipe">Tamanho da Equipe</label>
+            <input type="number" id="equipe" min="1" value="1">
+          </div>
+          <div class="form-group checkbox-group">
+            <label>
+              <input type="checkbox" id="precisaMarketing">
+              Precisa de apoio de Marketing
+            </label>
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Cadastrar Projeto</button>
+      </form>
+    </section>
+
+    <section class="dashboard-section">
+      <h2>Dashboard de Projetos</h2>
+      <div class="stats-bar" id="statsBar">
+        <div class="stat-card">Total: <span id="totalProjetos">0</span></div>
+        <div class="stat-card">Setores: <span id="totalSetores">0</span></div>
+        <div class="stat-card">Marketing: <span id="totalMarketing">0</span></div>
+      </div>
+      <div class="projects-list" id="projectsList">
+        <p class="empty-state">Nenhum projeto cadastrado. Use o formulário acima.</p>
+      </div>
+    </section>
+
+    <section class="ai-section">
+      <h2>Agente de IA - Análise Inteligente</h2>
+      <button id="runAnalysisBtn" class="btn-secondary">Executar Análise Completa</button>
+      <div class="ai-results" id="aiResults">
+        <div class="ai-panel">
+          <h3>⚡ Conflitos Detectados</h3>
+          <div id="conflitosContent"><p class="empty-state">Nenhum conflito detectado ainda.</p></div>
+        </div>
+        <div class="ai-panel">
+          <h3>⏱ Oportunidades de Economia</h3>
+          <div id="oportunidadesContent"><p class="empty-state">Nenhuma oportunidade identificada ainda.</p></div>
+        </div>
+        <div class="ai-panel">
+          <h3>📢 Apoio de Marketing</h3>
+          <div id="marketingContent"><p class="empty-state">Nenhuma solicitação de marketing.</p></div>
+        </div>
+        <div class="ai-panel">
+          <h3>🏆 Prioridades</h3>
+          <div id="prioridadesContent"><p class="empty-state">Nenhuma prioridade calculada.</p></div>
+        </div>
+        <div class="ai-panel full-width">
+          <h3>📋 Resumo Exclusivo dos Projetos</h3>
+          <div id="resumosContent"><p class="empty-state">Nenhum resumo disponível.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/ai-agent.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
