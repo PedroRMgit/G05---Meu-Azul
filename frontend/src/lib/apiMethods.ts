@@ -4,6 +4,7 @@ export const authApi = {
   login: (username: string, password: string) => api.post('/auth/login', new URLSearchParams({ username, password })),
   register: (data: any) => api.post('/auth/register', data),
   me: () => api.get('/auth/me'),
+  testLogin: (accessKey: string, role: string) => api.post('/auth/test-login', { access_key: accessKey, role }),
 };
 
 export const projectsApi = {

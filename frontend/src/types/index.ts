@@ -2,6 +2,7 @@ export type ProjectStatus = 'draft' | 'planning' | 'active' | 'on_hold' | 'compl
 export type ProjectPriority = 'low' | 'medium' | 'high' | 'critical';
 export type ProjectType = 'campaign' | 'promotion' | 'launch' | 'event' | 'internal' | 'partnership' | 'other';
 export type Department = 'marketing' | 'cargo' | 'fidelidade' | 'viagens' | 'cargo_express' | 'tecnologia' | 'financeiro' | 'operacoes' | 'outros';
+export type UserRole = 'director' | 'marketing_manager' | 'analyst' | 'developer';
 
 export interface Project {
   id: number;
@@ -168,7 +169,7 @@ export interface User {
   email: string;
   full_name: string;
   department: Department;
-  role: string;
+  role: UserRole | string;
   is_active: boolean;
   is_superuser: boolean;
 }

@@ -117,6 +117,11 @@ class User(UserBase):
         from_attributes = True
 
 
+class TestLoginCreate(BaseModel):
+    access_key: str
+    role: str
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

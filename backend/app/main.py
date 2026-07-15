@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta, date
+from datetime import datetime, timedelta, date
 from typing import List, Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -16,7 +16,7 @@ from app.models.models import (
     CalendarEvent
 )
 from app.schemas.schemas import (
-    UserCreate, User as UserSchema, Token, TokenData,
+    UserCreate, User as UserSchema, Token, TokenData, TestLoginCreate,
     ProjectCreate, ProjectUpdate, Project as ProjectSchema,
     ProjectSummary, ProjectConflict as ConflictSchema,
     ProjectSynergy as SynergySchema,
@@ -116,7 +116,7 @@ async def startup():
         db.close()
 
 
-@app.post(f"{settings.API_V1_STR}/auth/register", response_model=UserSchema)
+@app.post(f"{settings.API_V1_STR}/auth/register", response_model=Token)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == user_in.email).first():
         raise HTTPException(status_code=400, detail="Email já registrado")
@@ -130,7 +130,8 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user
+    access_token = create_access_token(data={"sub": user.email})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 @app.post(f"{settings.API_V1_STR}/auth/login", response_model=Token)
@@ -138,6 +139,28 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Email ou senha incorretos")
+    access_token = create_access_token(data={"sub": user.email})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.post(f"{settings.API_V1_STR}/auth/test-login", response_model=Token)
+def test_login(test_in: TestLoginCreate, db: Session = Depends(get_db)):
+    if test_in.access_key != "123":
+        raise HTTPException(status_code=401, detail="Chave de acesso inválida")
+    test_email = f"teste_{test_in.role}@meuazul.com"
+    user = db.query(User).filter(User.email == test_email).first()
+    if not user:
+        user = User(
+            email=test_email,
+            hashed_password=get_password_hash("teste123"),
+            full_name="teste",
+            department=DepartmentType.OUTROS,
+            role=test_in.role,
+            is_active=True,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
     access_token = create_access_token(data={"sub": user.email})
     return {"access_token": access_token, "token_type": "bearer"}
 

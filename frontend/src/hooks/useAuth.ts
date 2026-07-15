@@ -8,6 +8,7 @@ interface AuthState {
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
+  loginTest: (accessKey: string, role: string) => Promise<void>;
   logout: () => void;
   setAuth: (token: string, user: User) => void;
 }
@@ -45,6 +46,16 @@ export const useAuth = create<AuthState>()(
 
       register: async (data) => {
         const response = await authApi.register(data);
+        const { access_token } = response.data;
+        const userResponse = await authApi.me();
+        import('../lib/api').then(({ api }) => {
+          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+        });
+        set({ token: access_token, user: userResponse.data });
+      },
+
+      loginTest: async (accessKey, role) => {
+        const response = await authApi.testLogin(accessKey, role);
         const { access_token } = response.data;
         const userResponse = await authApi.me();
         import('../lib/api').then(({ api }) => {
