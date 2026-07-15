@@ -1,5 +1,7 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
+const { execSync } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -216,6 +218,259 @@ function gerarResumos(projects) {
     };
   });
 }
+
+const CONFIG_PATH = path.join(__dirname, 'dev-config.json');
+
+function readConfig() {
+  try {
+    return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+  } catch { return null; }
+}
+
+function writeConfig(config) {
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+}
+
+function patchSourceFiles(changes) {
+  const sourceFiles = ['public/index.html', 'public/js/app.js', 'public/js/ai-agent.js', 'public/css/style.css'];
+  const report = [];
+  const validChanges = changes.filter(c => c.oldValue && c.newValue && c.oldValue !== c.newValue);
+  if (validChanges.length === 0) return report;
+
+  for (const file of sourceFiles) {
+    const fpath = path.join(__dirname, file);
+    if (!fs.existsSync(fpath)) continue;
+    let content = fs.readFileSync(fpath, 'utf-8');
+
+    const replaceMap = {};
+    for (const c of validChanges) {
+      replaceMap[c.oldValue] = c.newValue;
+    }
+
+    let result = '';
+    let i = 0;
+    const len = content.length;
+    const keys = Object.keys(replaceMap).sort((a, b) => b.length - a.length);
+    const counts = {};
+    keys.forEach(k => { counts[k] = 0; });
+
+    while (i < len) {
+      let matched = false;
+      for (const key of keys) {
+        if (content.substring(i, i + key.length) === key) {
+          result += replaceMap[key];
+          counts[key]++;
+          i += key.length;
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        result += content[i];
+        i++;
+      }
+    }
+
+    const totalChanges = Object.values(counts).reduce((s, c) => s + c, 0);
+    if (totalChanges > 0) {
+      fs.writeFileSync(fpath, result, 'utf-8');
+      for (const key of keys) {
+        if (counts[key] > 0) {
+          report.push(`${file}: ${counts[key]} ocorrência(s) de "${key}" → "${replaceMap[key]}"`);
+        }
+      }
+    }
+  }
+  return report;
+}
+
+function reorderSelectOptions(html, selectId, orderedValues) {
+  const re = new RegExp(`(<select[^>]*id="${selectId}"[^>]*>)([\\s\\S]*?)(<\\/select>)`, 'i');
+  const m = html.match(re);
+  if (!m) return html;
+  const openTag = m[1];
+  const closeTag = m[3];
+  const inner = m[2];
+  const optionRe = /(<option[^>]*>[\s\S]*?<\/option>)/gi;
+  const options = [];
+  let optMatch;
+  while ((optMatch = optionRe.exec(inner)) !== null) {
+    options.push(optMatch[1]);
+  }
+  const optTextRe = /<option[^>]*value="([^"]*)"[^>]*>/i;
+  const nonValueOptions = options.filter(o => !o.match(/value="/i));
+  const valueOptions = options.filter(o => o.match(/value="/i));
+  valueOptions.sort((a, b) => {
+    const va = (a.match(optTextRe) || [,''])[1];
+    const vb = (b.match(optTextRe) || [,''])[1];
+    const ia = orderedValues.indexOf(va);
+    const ib = orderedValues.indexOf(vb);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+  const reordered = [...nonValueOptions, ...valueOptions].join('\n');
+  return html.replace(re, `${openTag}\n${reordered}\n${closeTag}`);
+}
+
+function reorderNavItems(html, orderedLabels) {
+  const navRe = /(<nav class="sidebar-nav" id="appNav"[^>]*>)([\s\S]*?)(<\/nav>)/i;
+  const m = html.match(navRe);
+  if (!m) return html;
+  const openTag = m[1];
+  const closeTag = m[3];
+  const inner = m[2];
+  const btnRe = /(<button[^>]*class="nav-item[^"]*"[^>]*data-page="[^"]*"[^>]*>[\s\S]*?<\/button>)/gi;
+  const buttons = [];
+  let btnMatch;
+  while ((btnMatch = btnRe.exec(inner)) !== null) {
+    buttons.push(btnMatch[1]);
+  }
+  const labelRe = /<span class="nav-label">([^<]*)<\/span>/;
+  buttons.sort((a, b) => {
+    const la = (a.match(labelRe) || [,''])[1];
+    const lb = (b.match(labelRe) || [,''])[1];
+    const ia = orderedLabels.indexOf(la);
+    const ib = orderedLabels.indexOf(lb);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+  return html.replace(navRe, `${openTag}\n${buttons.join('\n')}\n${closeTag}`);
+}
+
+function reorderCriteriaGrid(html, orderedLabels) {
+  const gridRe = /(<div class="criteria-grid">)([\s\S]*?)(<\/div>\s*<\/div>\s*<\/div>\s*<\/div>\s*<\/form>)/i;
+  const m = html.match(gridRe);
+  if (!m) return html;
+  const openTag = m[1];
+  const closeTag = m[3];
+  const inner = m[2];
+  const groupRe = /(<div class="form-group">[\s\S]*?<\/div>)/gi;
+  const groups = [];
+  let gMatch;
+  while ((gMatch = groupRe.exec(inner)) !== null) {
+    groups.push(gMatch[1]);
+  }
+  const labelRe = /<label[^>]*>([^<]*)<\/label>/;
+  groups.sort((a, b) => {
+    const la = (a.match(labelRe) || [,''])[1];
+    const lb = (b.match(labelRe) || [,''])[1];
+    const ia = orderedLabels.indexOf(la);
+    const ib = orderedLabels.indexOf(lb);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+  const afterGrid = groups.join('\n') + '\n';
+  return html.replace(gridRe, `${openTag}\n${afterGrid}${closeTag}`);
+}
+
+function patchSourceFileOrder(config) {
+  let htmlPath = path.join(__dirname, 'public/index.html');
+  if (!fs.existsSync(htmlPath)) return [];
+  let html = fs.readFileSync(htmlPath, 'utf-8');
+  const report = [];
+
+  if (config.verticals) {
+    const vals = config.verticals.items.map(i => i.value);
+    const before = html;
+    html = reorderSelectOptions(html, 'vertical', vals);
+    html = reorderSelectOptions(html, 'mktVertical', vals);
+    if (html !== before) report.push('public/index.html: Verticais reordenadas nos selects');
+  }
+
+  if (config.nav_labels) {
+    const vals = config.nav_labels.items.map(i => i.value);
+    const before = html;
+    html = reorderNavItems(html, vals);
+    if (html !== before) report.push('public/index.html: Navegação reordenada');
+  }
+
+  if (config.criteria) {
+    const vals = config.criteria.items.map(i => i.value);
+    const before = html;
+    html = reorderCriteriaGrid(html, vals);
+    if (html !== before) report.push('public/index.html: Critérios reordenados');
+  }
+
+  fs.writeFileSync(htmlPath, html, 'utf-8');
+  return report;
+}
+
+app.get('/api/dev/config', (req, res) => {
+  const config = readConfig();
+  if (!config) return res.status(500).json({ error: 'Config não encontrada' });
+  res.json(config);
+});
+
+app.post('/api/dev/save', (req, res) => {
+  try {
+    const { categories } = req.body;
+    if (!categories) return res.status(400).json({ error: 'Dados inválidos' });
+    const currentConfig = readConfig();
+    if (!currentConfig) return res.status(500).json({ error: 'Config não encontrada' });
+
+    const changes = [];
+
+    for (const [catKey, catData] of Object.entries(categories)) {
+      if (!currentConfig[catKey]) continue;
+
+      const newItems = catData.items;
+      const oldItems = currentConfig[catKey].items;
+
+      const oldByKey = {};
+      oldItems.forEach(item => { oldByKey[item.key] = item; });
+
+      for (let i = 0; i < newItems.length; i++) {
+        const newItem = newItems[i];
+        const oldItem = oldByKey[newItem.key];
+        if (oldItem) {
+          const oldVal = oldItem.value;
+          const newVal = newItem.value;
+          if (oldVal !== newVal) {
+            changes.push({ oldValue: oldVal, newValue: newVal });
+          }
+        }
+      }
+
+      currentConfig[catKey].items = newItems;
+    }
+
+    writeConfig(currentConfig);
+
+    const textReport = patchSourceFiles(changes);
+    const orderReport = patchSourceFileOrder(currentConfig);
+    const allReport = [...textReport, ...orderReport];
+
+    res.json({
+      message: `${changes.length} valor(es) alterado(s). ${allReport.length} arquivo(s) atualizado(s).`,
+      changes,
+      report: allReport
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/dev/git/status', (req, res) => {
+  try {
+    const output = execSync('git status', { cwd: __dirname, encoding: 'utf-8' });
+    res.json({ output });
+  } catch (err) {
+    res.json({ output: err.stdout || err.message });
+  }
+});
+
+app.post('/api/dev/git/push', (req, res) => {
+  try {
+    const addOut = execSync('git add -A', { cwd: __dirname, encoding: 'utf-8' });
+    const commitMsg = `Atualização DevTools - ${new Date().toLocaleString('pt-BR')}`;
+    let commitOut = '';
+    try { commitOut = execSync(`git commit -m "${commitMsg}"`, { cwd: __dirname, encoding: 'utf-8' }); }
+    catch (e) { commitOut = e.stdout || 'Nada a commitadar'; }
+    let pushOut = '';
+    try { pushOut = execSync('git push', { cwd: __dirname, encoding: 'utf-8' }); }
+    catch (e) { pushOut = e.stdout || e.message || 'Erro no push (pode ser necessário configurar remote)'; }
+    res.json({ output: `Add: ${addOut}\nCommit: ${commitOut}\nPush: ${pushOut}` });
+  } catch (err) {
+    res.json({ output: err.stdout || err.message });
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Meu Azul rodando em http://localhost:${PORT}`);

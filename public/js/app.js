@@ -11,6 +11,7 @@ function navegar(page) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   document.getElementById(`page-${page}`).classList.add('active');
   document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  if (page === 'devtools') devToolsLoad();
 }
 
 function switchLoginTab(tab) {
@@ -42,6 +43,8 @@ function loginDev() {
 
 function logout() {
   isAuthenticated = false;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   document.getElementById('mainNav').style.display = 'flex';
   document.getElementById('appNav').style.display = 'none';
   document.getElementById('sidebarProfile').style.display = 'none';
@@ -241,26 +244,52 @@ function updateStats() {
   document.getElementById('totalLucro').textContent = formatMoney(lucroTotal);
 }
 
+function updateAICriteriaPreview() {
+  const nome = document.getElementById('nome').value.trim();
+  const descricao = document.getElementById('descricao').value.trim();
+  const previewEl = document.getElementById('aiCriteriaPreview');
+  if (!nome && !descricao) {
+    previewEl.innerHTML = '<span style="font-size:0.82rem;color:#003399;">💡 Preencha o nome e a descrição para a IA calcular os critérios automaticamente.</span>';
+    return;
+  }
+  const project = { nome, descricao };
+  const criteria = agent.avaliarCriteriosMarketing(project);
+  const total = criteria.cViability + criteria.cImpact + criteria.cAreas + criteria.cAlignment + criteria.cInnovation;
+  previewEl.innerHTML = `
+    <span style="font-size:0.82rem;color:#003399;font-weight:600;">🤖 IA calculou:</span>
+    <span class="tag tag-profit">${criteria.cViability}/5 Viab</span>
+    <span class="tag tag-profit">${criteria.cImpact}/5 Impacto</span>
+    <span class="tag tag-profit">${criteria.cAreas}/5 Áreas</span>
+    <span class="tag tag-profit">${criteria.cAlignment}/5 Estratégia</span>
+    <span class="tag tag-profit">${criteria.cInnovation}/5 Inovação</span>
+    <span class="tag ${total >= 22 ? 'tag-urgent' : 'tag-marketing'}">Total: ${total}/25</span>
+  `;
+}
+
+document.getElementById('nome').addEventListener('input', updateAICriteriaPreview);
+document.getElementById('descricao').addEventListener('input', updateAICriteriaPreview);
+
 document.getElementById('projectForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const nome = document.getElementById('nome').value;
+  const descricao = document.getElementById('descricao').value;
+  const projectForAI = { nome, descricao };
+  const criteria = agent.avaliarCriteriosMarketing(projectForAI);
   const data = {
-    nome: document.getElementById('nome').value,
+    nome,
     vertical: document.getElementById('vertical').value,
     responsavel: document.getElementById('responsavel').value,
-    descricao: document.getElementById('descricao').value,
+    descricao,
     prazo: document.getElementById('prazo').value,
     custo: parseFloat(document.getElementById('custo').value) || 0,
     lucro: parseFloat(document.getElementById('lucro').value) || 0,
     equipe: parseInt(document.getElementById('equipe').value) || 1,
-    precisaMarketing: agent.detectarNecessidadeMarketing({
-      nome: document.getElementById('nome').value,
-      descricao: document.getElementById('descricao').value
-    }),
-    cViability: parseInt(document.getElementById('cViability').value) || 3,
-    cImpact: parseInt(document.getElementById('cImpact').value) || 3,
-    cAreas: parseInt(document.getElementById('cAreas').value) || 3,
-    cAlignment: parseInt(document.getElementById('cAlignment').value) || 3,
-    cInnovation: parseInt(document.getElementById('cInnovation').value) || 3
+    precisaMarketing: agent.detectarNecessidadeMarketing(projectForAI),
+    cViability: criteria.cViability,
+    cImpact: criteria.cImpact,
+    cAreas: criteria.cAreas,
+    cAlignment: criteria.cAlignment,
+    cInnovation: criteria.cInnovation
   };
   await addProject(data);
   e.target.reset();
@@ -276,51 +305,65 @@ document.getElementById('runAnalysisBtn').addEventListener('click', () => {
 });
 
 function renderAnalysis(analysis) {
-  const marketingRankingEl = document.getElementById('marketingRankingContent');
-  if (!analysis.marketingRanking || analysis.marketingRanking.length === 0) {
-    marketingRankingEl.innerHTML = '<p class="empty-state">Nenhum projeto para ranquear.</p>';
+  const prioridadeEl = document.getElementById('prioridadeContent');
+  if ((!analysis.marketingRanking || analysis.marketingRanking.length === 0) &&
+      (!analysis.prioridades || analysis.prioridades.length === 0)) {
+    prioridadeEl.innerHTML = '<p class="empty-state">Nenhum projeto disponível para análise.</p>';
   } else {
-    const top3 = analysis.marketingRanking.slice(0, 3);
     const medals = ['🥇', '🥈', '🥉'];
-    marketingRankingEl.innerHTML = analysis.marketingRanking.map((p, i) => {
+    const prioridadeMap = {};
+    (analysis.prioridades || []).forEach(p => { prioridadeMap[p.id] = p; });
+    const combined = (analysis.marketingRanking || []).map(m => {
+      const prio = prioridadeMap[m.id] || {};
+      const totalScore = (prio.score || 5) * 2.5 + (m.score || 0);
+      return { ...m, ...prio, totalScore, marketingScore: m.score, priorityScore: prio.score };
+    }).sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+    prioridadeEl.innerHTML = combined.map((p, i) => {
       const isTop3 = i < 3;
       const bg = isTop3 ? '#fffbe6' : 'transparent';
       const medal = isTop3 ? medals[i] : `<span style="font-size:0.8rem;color:#999;">#${i+1}</span>`;
-      const pct = (p.score / 25) * 100;
-      const color = p.score >= 22 ? '#dc2626' : p.score >= 18 ? '#d97706' : p.score >= 13 ? '#2563eb' : '#6b7280';
+      const marketingPct = ((p.marketingScore || 0) / 25) * 100;
+      const marketingColor = (p.marketingScore || 0) >= 22 ? '#dc2626' : (p.marketingScore || 0) >= 18 ? '#d97706' : (p.marketingScore || 0) >= 13 ? '#2563eb' : '#6b7280';
+      const priorityPct = ((p.priorityScore || 0) / 10) * 100;
+      const priorityColor = (p.priorityScore || 0) >= 8 ? '#dc2626' : (p.priorityScore || 0) >= 5 ? '#d97706' : (p.priorityScore || 0) >= 3 ? '#2563eb' : '#6b7280';
+      const nivel = p.nivel || (p.nivel === 'Crítico' ? 'Crítico' : p.nivel === 'Crítica' ? 'Crítica' : 'Médio');
+      const nivelClass = nivel === 'Crítica' || nivel === 'Crítico' ? 'critica' : nivel === 'Alta' ? 'alta' : nivel === 'Médio' || nivel === 'Media' ? 'media' : 'baixa';
       return `
-        <div class="ai-item" style="background:${bg};border-radius:6px;padding:0.65rem;${isTop3 ? 'border:1px solid #fde68a;margin-bottom:0.35rem;' : ''}">
+        <div class="ai-item" style="background:${bg};border-radius:6px;padding:0.65rem;${isTop3 ? 'border:1px solid #fde68a;margin-bottom:0.35rem;' : 'margin-bottom:0.25rem;'}">
           <div style="display:flex;align-items:center;gap:0.5rem;">
             <span style="font-size:1.1rem;">${medal}</span>
-            <strong style="flex:1;">${p.nome}</strong>
-            <span class="tag">${p.vertical}</span>
-            <span class="badge badge-${p.nivel === 'Crítico' ? 'critica' : p.nivel === 'Alto' ? 'alta' : p.nivel === 'Médio' ? 'media' : 'baixa'}">${p.nivel}</span>
+            <strong style="flex:1;">${p.nome || 'Sem nome'}</strong>
+            <span class="tag">${p.vertical || ''}</span>
+            <span class="badge badge-${nivelClass}">${nivel}</span>
           </div>
           <div style="display:flex;gap:0.5rem;margin-top:0.35rem;flex-wrap:wrap;font-size:0.75rem;color:#666;">
-            <span>Viab: ${p.viabilidade}/5</span>
-            <span>Impacto: ${p.impacto}/5</span>
-            <span>Áreas: ${p.areas}/5</span>
-            <span>Estratégia: ${p.alinhamento}/5</span>
-            <span>Inovação: ${p.inovacao}/5</span>
+            <span>🎯 Prioridade: <strong>${p.priorityScore || '?'}/10</strong></span>
+            <span>📢 Marketing: <strong>${p.marketingScore || '?'}/25</strong></span>
+            ${p.diasRestantes !== undefined ? `<span>📅 ${p.diasRestantes} dias restantes</span>` : ''}
+            ${p.prazo ? `<span>⏰ Prazo: ${formatDate(p.prazo)}</span>` : ''}
           </div>
-          <div class="priority-bar" style="margin-top:0.25rem;">
-            <span style="font-size:0.75rem;color:#666;font-weight:600;">Score Marketing: ${p.score}/25</span>
-            <div class="priority-fill"><span style="width:${pct}%;background:${color}"></span></div>
+          <div style="display:flex;flex-direction:column;gap:0.2rem;margin-top:0.25rem;">
+            <div class="priority-bar">
+              <span style="font-size:0.72rem;color:#666;font-weight:600;min-width:110px;">Prioridade:</span>
+              <div class="priority-fill"><span style="width:${priorityPct}%;background:${priorityColor}"></span></div>
+              <span style="font-size:0.72rem;color:#666;min-width:30px;text-align:right;">${p.priorityScore || 0}/10</span>
+            </div>
+            <div class="priority-bar">
+              <span style="font-size:0.72rem;color:#666;font-weight:600;min-width:110px;">Marketing:</span>
+              <div class="priority-fill"><span style="width:${marketingPct}%;background:${marketingColor}"></span></div>
+              <span style="font-size:0.72rem;color:#666;min-width:30px;text-align:right;">${p.marketingScore || 0}/25</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:0.5rem;margin-top:0.25rem;flex-wrap:wrap;font-size:0.72rem;color:#888;">
+            <span>Viab: ${p.viabilidade || 0}/5</span>
+            <span>Impacto: ${p.impacto || 0}/5</span>
+            <span>Áreas: ${p.areas || 0}/5</span>
+            <span>Estratégia: ${p.alinhamento || 0}/5</span>
+            <span>Inovação: ${p.inovacao || 0}/5</span>
           </div>
         </div>
       `;
     }).join('');
-
-    if (top3.length > 0) {
-      const team = marketingTeam.filter(t => top3.some(p => p.vertical === t.vertical));
-      if (team.length > 0) {
-        const emails = [...new Set(team.map(t => t.email))].join(', ');
-        showNotification(
-          `🏆 Top 3 projetos para marketing enviados para: ${emails}`,
-          'marketing'
-        );
-      }
-    }
   }
 
   const conflitosEl = document.getElementById('conflitosContent');
@@ -364,28 +407,6 @@ function renderAnalysis(analysis) {
     }).join('');
   }
 
-  const prioridadesEl = document.getElementById('prioridadesContent');
-  if (analysis.prioridades.length === 0) {
-    prioridadesEl.innerHTML = '<p class="empty-state">Nenhuma prioridade calculada.</p>';
-  } else {
-    const sorted = [...analysis.prioridades].sort((a, b) => b.score - a.score);
-    prioridadesEl.innerHTML = sorted.map(p => {
-      const pct = (p.score / 10) * 100;
-      const color = p.score >= 8 ? '#dc2626' : p.score >= 5 ? '#d97706' : p.score >= 3 ? '#2563eb' : '#6b7280';
-      return `
-        <div class="ai-item">
-          <strong>${p.nome}</strong>
-          <span class="badge badge-${p.nivel === 'Crítica' ? 'critica' : p.nivel === 'Alta' ? 'alta' : p.nivel === 'Média' ? 'media' : 'baixa'}">${p.nivel}</span>
-          <div class="priority-bar">
-            <span style="font-size:0.78rem;color:#666;">Score: ${p.score}/10</span>
-            <div class="priority-fill"><span style="width:${p.score * 10}%;background:${color}"></span></div>
-          </div>
-          <div style="font-size:0.78rem;color:#666;">Prazo: ${formatDate(p.prazo)} | ${p.diasRestantes} dias restantes</div>
-        </div>
-      `;
-    }).join('');
-  }
-
   const resumosEl = document.getElementById('resumosContent');
   if (analysis.resumos.length === 0) {
     resumosEl.innerHTML = '<p class="empty-state">Nenhum resumo disponível.</p>';
@@ -403,6 +424,113 @@ function renderAnalysis(analysis) {
         </div>
       </div>
     `).join('');
+  }
+}
+
+function devToolsShowNotification(message, type) {
+  const el = document.getElementById('devToolsNotification');
+  el.textContent = message;
+  el.className = `notification notification-${type}`;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 6000);
+}
+
+async function devToolsLoad() {
+  const editor = document.getElementById('devToolsEditor');
+  editor.innerHTML = '<p class="empty-state">Carregando...</p>';
+  try {
+    const res = await fetch(`${API_BASE}/dev/config`);
+    if (!res.ok) throw new Error('Erro ao carregar config');
+    const config = await res.json();
+    editor.innerHTML = Object.entries(config).map(([catKey, cat]) => `
+      <div class="dev-category" style="margin-bottom:1.25rem;">
+        <h3 style="font-size:1rem;color:#003399;margin-bottom:0.5rem;padding-bottom:0.35rem;border-bottom:1px solid #e0e7ff;">${cat.label}</h3>
+        <div class="dev-items" data-category="${catKey}">
+          ${cat.items.map((item, idx) => `
+            <div class="dev-item" data-key="${item.key}" style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem;padding:0.35rem 0.5rem;background:#f8faff;border-radius:6px;">
+              <div class="dev-reorder" style="display:flex;flex-direction:column;gap:1px;">
+                <button class="dev-btn-up" onclick="devToolsMove(this,-1)" style="background:none;border:none;cursor:pointer;font-size:0.6rem;padding:0;line-height:1;color:#666;" title="Mover para cima">▲</button>
+                <button class="dev-btn-down" onclick="devToolsMove(this,1)" style="background:none;border:none;cursor:pointer;font-size:0.6rem;padding:0;line-height:1;color:#666;" title="Mover para baixo">▼</button>
+              </div>
+              <input type="text" class="dev-item-input" value="${item.value.replace(/"/g, '&quot;')}" data-old="${item.value.replace(/"/g, '&quot;')}" style="flex:1;padding:0.35rem 0.5rem;border:1.5px solid #d0d5dd;border-radius:6px;font-size:0.85rem;font-family:inherit;">
+              <span class="dev-item-key" style="font-size:0.7rem;color:#999;font-family:monospace;">${item.key}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    editor.innerHTML = `<p style="color:#dc2626;">Erro ao carregar: ${err.message}</p>`;
+  }
+}
+
+function devToolsMove(btn, direction) {
+  const item = btn.closest('.dev-item');
+  const container = item.parentElement;
+  const items = [...container.querySelectorAll('.dev-item')];
+  const idx = items.indexOf(item);
+  if (direction === -1 && idx > 0) {
+    container.insertBefore(item, items[idx - 1]);
+  } else if (direction === 1 && idx < items.length - 1) {
+    container.insertBefore(items[idx + 1], item);
+  }
+}
+
+async function devToolsApply() {
+  const applyBtn = document.getElementById('devApplyBtn');
+  applyBtn.disabled = true;
+  applyBtn.textContent = '⏳ Salvando...';
+  try {
+    const categories = {};
+    document.querySelectorAll('.dev-category').forEach(cat => {
+      const catKey = cat.querySelector('.dev-items').dataset.category;
+      const items = [];
+      cat.querySelectorAll('.dev-item').forEach(item => {
+        const key = item.dataset.key;
+        const value = item.querySelector('.dev-item-input').value.trim();
+        const oldValue = item.querySelector('.dev-item-input').dataset.old;
+        items.push({ key, value, oldValue });
+      });
+      categories[catKey] = { items };
+    });
+    const res = await fetch(`${API_BASE}/dev/save`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categories })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Erro ao salvar');
+    devToolsShowNotification(result.message || 'Alterações salvas com sucesso!', 'info');
+    await devToolsLoad();
+  } catch (err) {
+    devToolsShowNotification('Erro: ' + err.message, 'warning');
+  } finally {
+    applyBtn.disabled = false;
+    applyBtn.textContent = '💾 Aplicar';
+  }
+}
+
+async function devToolsGitStatus() {
+  const output = document.getElementById('devGitOutput');
+  output.textContent = 'Carregando status...';
+  try {
+    const res = await fetch(`${API_BASE}/dev/git/status`);
+    const result = await res.json();
+    output.textContent = result.output || 'Sem resposta';
+  } catch (err) {
+    output.textContent = 'Erro: ' + err.message;
+  }
+}
+
+async function devToolsGitPush() {
+  const output = document.getElementById('devGitOutput');
+  output.textContent = 'Executando push...';
+  try {
+    const res = await fetch(`${API_BASE}/dev/git/push`, { method: 'POST' });
+    const result = await res.json();
+    output.textContent = result.output || 'Push realizado com sucesso!';
+  } catch (err) {
+    output.textContent = 'Erro: ' + err.message;
   }
 }
 

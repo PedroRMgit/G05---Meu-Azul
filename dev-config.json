@@ -1,0 +1,184 @@
+{
+  "verticals": {
+    "label": "Verticais",
+    "items": [
+      {
+        "key": "azul_marca_mae",
+        "value": "Azul (Marca Mae)",
+        "oldValue": "Azul (Marca Mae)"
+      },
+      {
+        "key": "viagens",
+        "value": "Viagens",
+        "oldValue": "Viagens"
+      },
+      {
+        "key": "conecta",
+        "value": "Conecta",
+        "oldValue": "Conecta"
+      },
+      {
+        "key": "fidelidade",
+        "value": "Fidelidade",
+        "oldValue": "Fidelidade"
+      },
+      {
+        "key": "logistica",
+        "value": "Logística",
+        "oldValue": "Logística"
+      },
+      {
+        "key": "tecops",
+        "value": "TecOps",
+        "oldValue": "TecOps"
+      }
+    ]
+  },
+  "nav_labels": {
+    "label": "Labels da Navegação (sidebar)",
+    "items": [
+      {
+        "key": "nav_dashboard",
+        "value": "Dashboard"
+      },
+      {
+        "key": "nav_novo_projeto",
+        "value": "Novo Projeto"
+      },
+      {
+        "key": "nav_equipe_marketing",
+        "value": "Equipe Marketing"
+      },
+      {
+        "key": "nav_devtools",
+        "value": "Ferramentas Dev"
+      }
+    ]
+  },
+  "criteria": {
+    "label": "Critérios de Marketing",
+    "items": [
+      {
+        "key": "c_viability",
+        "value": "Viabilidade"
+      },
+      {
+        "key": "c_impact",
+        "value": "Impacto no Cliente"
+      },
+      {
+        "key": "c_areas",
+        "value": "Áreas Envolvidas"
+      },
+      {
+        "key": "c_alignment",
+        "value": "Alinhamento Estratégico"
+      },
+      {
+        "key": "c_innovation",
+        "value": "Potencial de Inovação"
+      }
+    ]
+  },
+  "criteria_levels": {
+    "label": "Níveis dos Critérios de Marketing",
+    "items": [
+      {
+        "key": "level_alto",
+        "value": "Alto",
+        "oldValue": "Modificado"
+      },
+      {
+        "key": "level_muito_alto",
+        "value": "Muito Alto",
+        "oldValue": "Muito Alto"
+      },
+      {
+        "key": "level_medio",
+        "value": "Médio",
+        "oldValue": "Médio"
+      },
+      {
+        "key": "level_baixa",
+        "value": "Baixa",
+        "oldValue": "Baixa"
+      },
+      {
+        "key": "level_muito_baixa",
+        "value": "Muito Baixa",
+        "oldValue": "Muito Baixa"
+      }
+    ]
+  },
+  "priority_levels": {
+    "label": "Níveis de Prioridade",
+    "items": [
+      {
+        "key": "prio_critica",
+        "value": "Crítica"
+      },
+      {
+        "key": "prio_alta",
+        "value": "Alta"
+      },
+      {
+        "key": "prio_media",
+        "value": "Média"
+      },
+      {
+        "key": "prio_baixa",
+        "value": "Baixa"
+      }
+    ]
+  },
+  "ai_panels": {
+    "label": "Títulos dos Painéis de IA",
+    "items": [
+      {
+        "key": "panel_prioridade",
+        "value": "Prioridade - Ranking Completo"
+      },
+      {
+        "key": "panel_conflitos",
+        "value": "Conflitos Detectados"
+      },
+      {
+        "key": "panel_oportunidades",
+        "value": "Oportunidades de Economia"
+      },
+      {
+        "key": "panel_marketing",
+        "value": "Apoio de Marketing"
+      },
+      {
+        "key": "panel_resumos",
+        "value": "Resumo dos Projetos"
+      }
+    ]
+  },
+  "btn_labels": {
+    "label": "Labels dos Botões",
+    "items": [
+      {
+        "key": "btn_analisar",
+        "value": "Executar Análise"
+      },
+      {
+        "key": "btn_cadastrar",
+        "value": "Cadastrar Projeto"
+      },
+      {
+        "key": "btn_cancelar",
+        "value": "Cancelar"
+      },
+      {
+        "key": "btn_adicionar_mkt",
+        "value": "Adicionar"
+      },
+      {
+        "key": "btn_remover",
+        "value": "Remover"
+      }
+    ]
+  }
+}

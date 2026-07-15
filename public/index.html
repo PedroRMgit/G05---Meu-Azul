@@ -28,19 +28,23 @@
         </button>
       </nav>
       <nav class="sidebar-nav" id="appNav" style="display:none;">
-        <button class="nav-item active" data-page="dashboard" onclick="navegar('dashboard')">
+<button class="nav-item active" data-page="dashboard" onclick="navegar('dashboard')">
           <span class="nav-icon">📊</span>
           <span class="nav-label">Dashboard</span>
         </button>
-        <button class="nav-item" data-page="novo-projeto" onclick="navegar('novo-projeto')">
+<button class="nav-item" data-page="novo-projeto" onclick="navegar('novo-projeto')">
           <span class="nav-icon plus-icon">+</span>
           <span class="nav-label">Novo Projeto</span>
         </button>
-        <button class="nav-item" data-page="equipe-marketing" onclick="navegar('equipe-marketing')">
+<button class="nav-item" data-page="equipe-marketing" onclick="navegar('equipe-marketing')">
           <span class="nav-icon">👥</span>
           <span class="nav-label">Equipe Marketing</span>
         </button>
-      </nav>
+<button class="nav-item" data-page="devtools" onclick="navegar('devtools')">
+          <span class="nav-icon">🔧</span>
+          <span class="nav-label">Ferramentas Dev</span>
+        </button>
+</nav>
       <div class="sidebar-profile" id="sidebarProfile" style="display:none;">
         <div class="profile-avatar">👤</div>
         <div class="profile-info">
@@ -142,13 +146,9 @@
               <h3>📢 Apoio de Marketing</h3>
               <div id="marketingContent"><p class="empty-state">Nenhuma solicitação de marketing.</p></div>
             </div>
-            <div class="ai-panel">
-              <h3>🏆 Ranking Marketing</h3>
-              <div id="marketingRankingContent"><p class="empty-state">Execute a análise para ver o ranking.</p></div>
-            </div>
-            <div class="ai-panel">
-              <h3>🏆 Prioridades</h3>
-              <div id="prioridadesContent"><p class="empty-state">Nenhuma prioridade calculada.</p></div>
+            <div class="ai-panel full-width">
+              <h3>🏆 Prioridade - Ranking Completo</h3>
+              <div id="prioridadeContent"><p class="empty-state">Execute a análise para ver o ranking completo de prioridades.</p></div>
             </div>
             <div class="ai-panel full-width">
               <h3>📋 Resumo dos Projetos</h3>
@@ -174,14 +174,14 @@
               <div class="form-group">
                 <label for="vertical">Vertical *</label>
                 <select id="vertical" required>
-                  <option value="">Selecione...</option>
-                  <option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
-                  <option value="Viagens">Viagens</option>
-                  <option value="Conecta">Conecta</option>
-                  <option value="Fidelidade">Fidelidade</option>
-                  <option value="Logística">Logística</option>
-                  <option value="TecOps">TecOps</option>
-                </select>
+<option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
+<option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
+<option value="Viagens">Viagens</option>
+<option value="Viagens">Viagens</option>
+<option value="Conecta">Conecta</option>
+<option value="Conecta">Conecta</option>
+<option value="">Selecione...</option>
+</select>
               </div>
               <div class="form-group">
                 <label for="responsavel">Responsável *</label>
@@ -208,58 +208,11 @@
                 <textarea id="descricao" required placeholder="Descreva o objetivo, escopo e entregas do projeto..."></textarea>
               </div>
               <div class="form-group full-width" style="margin-top:0.5rem;">
-                <div style="font-weight:600;font-size:0.85rem;color:#333;margin-bottom:0.75rem;">Critérios de Marketing (1 a 5)</div>
-                <div class="criteria-grid">
-                  <div class="form-group">
-                    <label for="cViability">Viabilidade</label>
-                    <select id="cViability">
-                      <option value="3">3 - Médio</option>
-                      <option value="1">1 - Muito Baixa</option>
-                      <option value="2">2 - Baixa</option>
-                      <option value="4">4 - Alta</option>
-                      <option value="5">5 - Muito Alta</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="cImpact">Impacto no Cliente</label>
-                    <select id="cImpact">
-                      <option value="3">3 - Médio</option>
-                      <option value="1">1 - Muito Baixo</option>
-                      <option value="2">2 - Baixo</option>
-                      <option value="4">4 - Alto</option>
-                      <option value="5">5 - Muito Alto</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="cAreas">Áreas Envolvidas</label>
-                    <select id="cAreas">
-                      <option value="3">3 - Médias</option>
-                      <option value="1">1 - Muito Poucas</option>
-                      <option value="2">2 - Poucas</option>
-                      <option value="4">4 - Muitas</option>
-                      <option value="5">5 - Muitíssimas</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="cAlignment">Alinhamento Estratégico</label>
-                    <select id="cAlignment">
-                      <option value="3">3 - Médio</option>
-                      <option value="1">1 - Muito Baixo</option>
-                      <option value="2">2 - Baixo</option>
-                      <option value="4">4 - Alto</option>
-                      <option value="5">5 - Muito Alto</option>
-                    </select>
-                  </div>
-                  <div class="form-group">
-                    <label for="cInnovation">Potencial de Inovação</label>
-                    <select id="cInnovation">
-                      <option value="3">3 - Médio</option>
-                      <option value="1">1 - Muito Baixo</option>
-                      <option value="2">2 - Baixo</option>
-                      <option value="4">4 - Alto</option>
-                      <option value="5">5 - Muito Alto</option>
-                    </select>
-                  </div>
+                <div style="font-weight:600;font-size:0.85rem;color:#333;margin-bottom:0.75rem;">
+                  📊 Critérios de Marketing — <span style="color:#666;font-weight:400;">definidos automaticamente pela IA com base na descrição do projeto</span>
+                </div>
+                <div id="aiCriteriaPreview" style="display:flex;gap:1rem;flex-wrap:wrap;padding:0.5rem 0.75rem;background:#f0f7ff;border:1px solid #b3d4ff;border-radius:8px;">
+                  <span style="font-size:0.82rem;color:#003399;">Aguardando descrição para calcular...</span>
                 </div>
               </div>
             </div>
@@ -285,14 +238,14 @@
             <div class="form-group">
               <label for="mktVertical">Vertical</label>
               <select id="mktVertical">
-                <option value="">Selecione...</option>
-                <option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
-                <option value="Viagens">Viagens</option>
-                <option value="Conecta">Conecta</option>
-                <option value="Fidelidade">Fidelidade</option>
-                <option value="Logística">Logística</option>
-                <option value="TecOps">TecOps</option>
-              </select>
+<option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
+<option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
+<option value="Viagens">Viagens</option>
+<option value="Viagens">Viagens</option>
+<option value="Conecta">Conecta</option>
+<option value="Conecta">Conecta</option>
+<option value="">Selecione...</option>
+</select>
             </div>
             <div class="form-group">
               <label for="mktNome">Nome</label>
@@ -311,7 +264,39 @@
           </div>
         </div>
       </div>
-    </main>
+      <div id="page-devtools" class="page">
+        <div class="page-header">
+          <h1>🔧 Ferramentas de Desenvolvimento</h1>
+          <p class="page-subtitle">Edite nomes, labels e posições. As alterações persistem no código-fonte.</p>
+        </div>
+
+        <div id="devToolsNotification" class="notification" style="display:none;"></div>
+
+        <div class="section-block">
+          <div class="section-header">
+            <h2>Itens Configuráveis</h2>
+            <div style="display:flex;gap:0.5rem;">
+              <button id="devRefreshBtn" class="btn-outline" onclick="devToolsLoad()">🔄 Recarregar</button>
+              <button id="devApplyBtn" class="btn-primary" onclick="devToolsApply()">💾 Aplicar</button>
+            </div>
+          </div>
+          <p style="font-size:0.85rem;color:#666;margin-bottom:1rem;">
+            Altere os valores abaixo e clique em <strong>"Aplicar"</strong> para salvar no código-fonte e enviar ao Git.
+          </p>
+          <div id="devToolsEditor"><p class="empty-state">Carregando...</p></div>
+        </div>
+
+        <div class="section-block">
+          <h2>Ações do Git</h2>
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+            <button class="btn-secondary" onclick="devToolsGitStatus()">📋 Ver Status</button>
+            <button class="btn-primary" onclick="devToolsGitPush()">🚀 Push</button>
+          </div>
+          <pre id="devGitOutput" style="background:#1a1a2e;color:#e0e0e0;padding:1rem;border-radius:8px;margin-top:0.75rem;font-size:0.82rem;overflow-x:auto;min-height:40px;white-space:pre-wrap;"></pre>
+        </div>
+      </div>
+
+      </main>
   </div>
 
   <script src="js/ai-agent.js"></script>

@@ -152,6 +152,41 @@ class AIAgent {
     });
   }
 
+  avaliarCriteriosMarketing(project) {
+    const texto = `${project.nome} ${project.descricao || ''}`.toLowerCase();
+    const palavras = texto.split(/\s+/);
+
+    const keywords_viability = ['viável', 'viabilidade', 'executível', 'implementar', 'infraestrutura', 'recursos', 'orçamento', 'custo', 'investimento', 'prazo', 'cronograma', 'fazível', 'possível'];
+    const keywords_impact = ['impacto', 'cliente', 'passageiro', 'experiência', 'satisfação', 'nps', 'qualidade', 'serviço', 'atendimento', 'usuário', 'benefício', 'melhoria', 'transformação'];
+    const keywords_areas = ['áreas', 'departamento', 'time', 'equipe', 'multidisciplinar', 'colaboração', 'parceria', 'integração', 'vertical', 'operações', 'logística', 'tecnologia', 'marketing', 'vendas', 'comercial', 'toda empresa', 'cross'];
+    const keywords_alignment = ['estratégico', 'estratégia', 'missão', 'visão', 'meta', 'objetivo', 'crescimento', 'expansão', 'mercado', 'competitivo', 'diferencial', 'posicionamento', 'alinhamento', 'diretriz', 'planejamento'];
+    const keywords_innovation = ['inovação', 'inovador', 'novo', 'modernização', 'digital', 'transformação digital', 'tecnologia', 'automação', 'ia', 'inteligência artificial', 'machine learning', 'dados', 'data', 'pioneiro', 'disruptivo', 'startup', 'futuro', 'vanguarda'];
+
+    function score(keywords) {
+      let s = 0;
+      const matched = new Set();
+      for (const kw of keywords) {
+        const lowerKw = kw.toLowerCase();
+        for (const pal of palavras) {
+          if (pal.includes(lowerKw) || lowerKw.includes(pal)) {
+            if (!matched.has(pal)) { s++; matched.add(pal); }
+          }
+        }
+      }
+      if (texto.includes(lowerKw)) s++;
+      const norm = Math.min(5, Math.max(1, Math.round(s / 2) + 1));
+      return norm;
+    }
+
+    return {
+      cViability: score(keywords_viability),
+      cImpact: score(keywords_impact),
+      cAreas: score(keywords_areas),
+      cAlignment: score(keywords_alignment),
+      cInnovation: score(keywords_innovation)
+    };
+  }
+
   detectarNecessidadeMarketing(project) {
     const texto = `${project.nome} ${project.descricao}`.toLowerCase();
     const keywords = [
