@@ -4,12 +4,39 @@ const agent = new AIAgent();
 let projects = [];
 let marketingTeam = [];
 let notificationTimeout = null;
+let isAuthenticated = false;
 
 function navegar(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   document.getElementById(`page-${page}`).classList.add('active');
   document.querySelector(`[data-page="${page}"]`).classList.add('active');
+}
+
+function switchLoginTab(tab) {
+  document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.login-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`[data-login-tab="${tab}"]`).classList.add('active');
+  document.getElementById(`login-panel-${tab}`).classList.add('active');
+  document.getElementById('devError').style.display = 'none';
+  document.querySelectorAll('#mainNav .nav-item').forEach(i => i.classList.remove('active'));
+  document.querySelector(`#mainNav [data-page="${tab}"]`).classList.add('active');
+  document.getElementById('page-login').classList.add('active');
+}
+
+function loginDev() {
+  const key = document.getElementById('devKey').value;
+  if (key === '123') {
+    isAuthenticated = true;
+    document.getElementById('mainNav').style.display = 'none';
+    document.getElementById('appNav').style.display = 'flex';
+    document.getElementById('devError').style.display = 'none';
+    navegar('dashboard');
+    loadProjects();
+    loadMarketingTeam();
+  } else {
+    document.getElementById('devError').style.display = 'block';
+  }
 }
 
 function formatDate(dateStr) {
@@ -316,5 +343,4 @@ function renderAnalysis(analysis) {
   }
 }
 
-loadProjects();
-loadMarketingTeam();
+navegar('login');

@@ -629,3 +629,94 @@ body {
     gap: 0.5rem;
   }
 }
+
+/* Login Page */
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 4rem);
+}
+
+.login-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 51, 153, 0.12);
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid #e0e7ff;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-logo-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.login-header h1 {
+  color: #003399;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.login-subtitle {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.login-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e0e7ff;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.login-tab {
+  flex: 1;
+  padding: 0.7rem 0.5rem;
+  background: #f8faff;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  border-right: 1px solid #e0e7ff;
+}
+
+.login-tab:last-child {
+  border-right: none;
+}
+
+.login-tab:hover {
+  background: #e8f0fe;
+  color: #003399;
+}
+
+.login-tab.active {
+  background: #003399;
+  color: white;
+}
+
+.login-content {
+  min-height: 200px;
+}
+
+.login-panel {
+  display: none;
+}
+
+.login-panel.active {
+  display: block;
+  animation: fadeIn 0.2s ease-out;
+}
