@@ -1,0 +1,48 @@
+<div id="page-login" class="page active">
+  <div class="login-container">
+    <div class="login-card">
+      <div class="login-header">
+        <span class="login-logo-icon">✈</span>
+        <h1>Meu Azul</h1>
+        <p class="login-subtitle">Plataforma de Gestão de Projetos</p>
+      </div>
+      <div class="login-tabs">
+        <button class="login-tab active" data-login-tab="login" onclick="switchLoginTab('login')">Login</button>
+        <button class="login-tab" data-login-tab="entrar" onclick="switchLoginTab('entrar')">Entrar</button>
+        <button class="login-tab" data-login-tab="desenvolvedor" onclick="switchLoginTab('desenvolvedor')">Desenvolvedor</button>
+      </div>
+      <div class="login-content">
+        <div id="login-panel-login" class="login-panel active">
+          <p style="color:#666;margin-bottom:1rem;text-align:center;">Faça login com seu email institucional</p>
+          <form onsubmit="return false;">
+            <div class="form-group">
+              <label for="loginEmail">Email</label>
+              <input type="email" id="loginEmail" placeholder="seu@azul.com.br">
+            </div>
+            <div class="form-group">
+              <label for="loginSenha">Senha</label>
+              <input type="password" id="loginSenha" placeholder="Digite sua senha">
+            </div>
+            <button type="submit" class="btn-primary" style="width:100%;margin-top:0.5rem;" onclick="alert('Login ainda não implementado. Use a aba Desenvolvedor com a chave 123.')">Entrar</button>
+          </form>
+        </div>
+        <div id="login-panel-entrar" class="login-panel">
+          <p style="color:#666;margin-bottom:1rem;text-align:center;">Acesse com sua conta corporativa</p>
+          <div style="display:flex;flex-direction:column;gap:0.75rem;">
+            <button class="btn-outline" style="width:100%;padding:0.85rem;" onclick="alert('Login corporativo ainda não implementado. Use a aba Desenvolvedor com a chave 123.')">Entrar com Google</button>
+            <button class="btn-outline" style="width:100%;padding:0.85rem;" onclick="alert('Login corporativo ainda não implementado. Use a aba Desenvolvedor com a chave 123.')">Entrar com Microsoft</button>
+          </div>
+        </div>
+        <div id="login-panel-desenvolvedor" class="login-panel">
+          <p style="color:#666;margin-bottom:1rem;text-align:center;">Acesso para desenvolvedores</p>
+          <div class="form-group">
+            <label for="devKey">Chave de Acesso</label>
+            <input type="password" id="devKey" placeholder="Digite a chave de desenvolvedor">
+          </div>
+          <button class="btn-primary" style="width:100%;margin-top:0.5rem;" onclick="loginDev()">Acessar</button>
+          <p id="devError" style="color:#dc2626;font-size:0.85rem;margin-top:0.5rem;display:none;text-align:center;">Chave inválida. Tente novamente.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

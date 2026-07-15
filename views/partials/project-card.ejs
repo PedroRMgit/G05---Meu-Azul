@@ -1,0 +1,22 @@
+<div class="project-card">
+  <div class="project-info">
+    <h4><%= project.nome %></h4>
+    <div class="project-responsavel">👤 <%= project.responsavel || 'Sem responsável' %></div>
+    <div class="project-resumo"><%= project.descricao.substring(0, 100) %><%= project.descricao.length > 100 ? '...' : '' %></div>
+    <div class="project-meta">
+      <span class="tag"><%= project.vertical %></span>
+      <span class="tag">Prazo: <%= new Date(project.prazo + 'T23:59:59').toLocaleDateString('pt-BR') %></span>
+      <span class="tag">Equipe: <%= project.equipe %></span>
+      <% if (project.custo > 0) { %><span class="tag tag-cost">Custo: R$ <%= project.custo.toFixed(2) %></span><% } %>
+      <% if (project.lucro > 0) { %><span class="tag tag-profit">Lucro: R$ <%= project.lucro.toFixed(2) %></span><% } %>
+      <% var lucroLiquido = (project.lucro || 0) - (project.custo || 0); %>
+      <% if (lucroLiquido > 0) { %><span class="tag tag-profit">💰 R$ <%= lucroLiquido.toFixed(2) %></span><% } %>
+      <% if (project.precisaMarketing) { %><span class="tag tag-marketing">Requer Marketing</span><% } %>
+      <% var mktScore = (project.cViability||3) + (project.cImpact||3) + (project.cAreas||3) + (project.cAlignment||3) + (project.cInnovation||3); %>
+      <span class="tag tag-marketing">Mkt: <%= mktScore %>/25</span>
+    </div>
+  </div>
+  <div class="project-actions">
+    <button class="btn-danger" onclick="deleteProject(<%= project.id %>)">Remover</button>
+  </div>
+</div>

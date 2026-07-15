@@ -12,6 +12,52 @@ app.use(express.static(path.join(__dirname, 'public')));
 let projects = [];
 let projectIdCounter = 1;
 
+let users = [];
+let userIdCounter = 1;
+
+app.post('/api/auth/register', (req, res) => {
+  const { nome, email, senha, role } = req.body;
+  if (!nome || !email || !senha || !role) {
+    return res.status(400).json({ error: 'Campos obrigatórios: nome, email, senha, role' });
+  }
+  if (users.find(u => u.email === email)) {
+    return res.status(400).json({ error: 'Email já cadastrado' });
+  }
+  const user = {
+    id: userIdCounter++,
+    nome,
+    email,
+    senha,
+    role,
+    criadoEm: new Date().toISOString()
+  };
+  users.push(user);
+  res.status(201).json({ id: user.id, nome: user.nome, email: user.email, role: user.role });
+});
+
+app.post('/api/auth/login', (req, res) => {
+  const { email, senha, role } = req.body;
+  if (!email || !senha || !role) {
+    return res.status(400).json({ error: 'Campos obrigatórios: email, senha, role' });
+  }
+  const user = users.find(u => u.email === email && u.senha === senha && u.role === role);
+  if (!user) {
+    return res.status(401).json({ error: 'Credenciais inválidas' });
+  }
+  res.json({ id: user.id, nome: user.nome, email: user.email, role: user.role });
+});
+
+app.post('/api/auth/test', (req, res) => {
+  const { key, role } = req.body;
+  if (key !== '123') {
+    return res.status(401).json({ error: 'Chave inválida' });
+  }
+  if (!role) {
+    return res.status(400).json({ error: 'Selecione um cargo' });
+  }
+  res.json({ id: 0, nome: 'teste', email: 'teste@azul.com.br', role });
+});
+
 app.get('/api/projects', (req, res) => {
   res.json(projects);
 });
@@ -41,6 +87,32 @@ app.post('/api/projects', (req, res) => {
   };
   projects.push(project);
   res.status(201).json(project);
+});
+
+app.put('/api/projects/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = projects.findIndex(p => p.id === id);
+  if (index === -1) return res.status(404).json({ error: 'Projeto não encontrado' });
+  const { nome, vertical, descricao, prazo, equipe, precisaMarketing, custo, lucro, responsavel, cViability, cImpact, cAreas, cAlignment, cInnovation } = req.body;
+  const updated = {
+    ...projects[index],
+    ...(nome && { nome }),
+    ...(vertical && { vertical }),
+    ...(descricao && { descricao }),
+    ...(prazo && { prazo }),
+    ...(equipe !== undefined && { equipe: parseInt(equipe) }),
+    ...(precisaMarketing !== undefined && { precisaMarketing }),
+    ...(custo !== undefined && { custo: parseFloat(custo) }),
+    ...(lucro !== undefined && { lucro: parseFloat(lucro) }),
+    ...(responsavel !== undefined && { responsavel }),
+    ...(cViability !== undefined && { cViability: parseInt(cViability) }),
+    ...(cImpact !== undefined && { cImpact: parseInt(cImpact) }),
+    ...(cAreas !== undefined && { cAreas: parseInt(cAreas) }),
+    ...(cAlignment !== undefined && { cAlignment: parseInt(cAlignment) }),
+    ...(cInnovation !== undefined && { cInnovation: parseInt(cInnovation) })
+  };
+  projects[index] = updated;
+  res.json(updated);
 });
 
 app.delete('/api/projects/:id', (req, res) => {

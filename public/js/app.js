@@ -4,53 +4,238 @@ const agent = new AIAgent();
 let projects = [];
 let marketingTeam = [];
 let notificationTimeout = null;
-let isAuthenticated = false;
+let currentUser = null;
+let selectedRole = null;
+let editingProjectId = null;
+
+function showLogin() {
+  currentUser = null;
+  selectedRole = null;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('mainNav').style.display = 'flex';
+  document.getElementById('appNav').style.display = 'none';
+  document.getElementById('appNav').innerHTML = '';
+  document.getElementById('sidebarProfile').style.display = 'none';
+  document.getElementById('devToggleArea').style.display = 'none';
+  document.getElementById('page-login').classList.add('active');
+  document.getElementById('loginStepRole').style.display = 'block';
+  document.getElementById('loginStepAuth').style.display = 'none';
+}
+
+function selectRole(role) {
+  selectedRole = role;
+  const roleNames = {
+    'diretor': 'Diretor',
+    'gerente-marketing': 'Gerente de Marketing',
+    'analista': 'Analista',
+    'desenvolvedor': 'Desenvolvedor'
+  };
+  document.getElementById('loginStepRole').style.display = 'none';
+  document.getElementById('loginStepAuth').style.display = 'block';
+  document.getElementById('authSubtitle').textContent = `Acessar como ${roleNames[role]}`;
+  document.getElementById('loginFormArea').style.display = 'none';
+  document.getElementById('registerFormArea').style.display = 'none';
+  document.getElementById('testFormArea').style.display = 'none';
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('registerError').style.display = 'none';
+  document.getElementById('testError').style.display = 'none';
+}
+
+function backToRoleSelection() {
+  selectedRole = null;
+  document.getElementById('loginStepRole').style.display = 'block';
+  document.getElementById('loginStepAuth').style.display = 'none';
+}
+
+function showLoginForm() {
+  document.getElementById('loginFormArea').style.display = 'block';
+  document.getElementById('registerFormArea').style.display = 'none';
+  document.getElementById('testFormArea').style.display = 'none';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+function showRegisterForm() {
+  document.getElementById('loginFormArea').style.display = 'none';
+  document.getElementById('registerFormArea').style.display = 'block';
+  document.getElementById('testFormArea').style.display = 'none';
+  document.getElementById('registerError').style.display = 'none';
+}
+
+function showTestForm() {
+  document.getElementById('loginFormArea').style.display = 'none';
+  document.getElementById('registerFormArea').style.display = 'none';
+  document.getElementById('testFormArea').style.display = 'block';
+  document.getElementById('testError').style.display = 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const senha = document.getElementById('loginSenha').value.trim();
+  const errorEl = document.getElementById('loginError');
+  if (!email || !senha) {
+    errorEl.textContent = 'Preencha email e senha.';
+    errorEl.style.display = 'block';
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, senha, role: selectedRole })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errorEl.textContent = data.error || 'Erro ao fazer login';
+      errorEl.style.display = 'block';
+      return;
+    }
+    currentUser = data;
+    enterApp();
+  } catch (err) {
+    errorEl.textContent = 'Erro de conexão: ' + err.message;
+    errorEl.style.display = 'block';
+  }
+}
+
+async function doRegister() {
+  const nome = document.getElementById('registerNome').value.trim();
+  const email = document.getElementById('registerEmail').value.trim();
+  const senha = document.getElementById('registerSenha').value.trim();
+  const errorEl = document.getElementById('registerError');
+  if (!nome || !email || !senha) {
+    errorEl.textContent = 'Preencha todos os campos.';
+    errorEl.style.display = 'block';
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, email, senha, role: selectedRole })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errorEl.textContent = data.error || 'Erro ao criar conta';
+      errorEl.style.display = 'block';
+      return;
+    }
+    currentUser = data;
+    enterApp();
+  } catch (err) {
+    errorEl.textContent = 'Erro de conexão: ' + err.message;
+    errorEl.style.display = 'block';
+  }
+}
+
+async function doTest() {
+  const key = document.getElementById('testKey').value.trim();
+  const errorEl = document.getElementById('testError');
+  if (!key) {
+    errorEl.textContent = 'Digite a chave de teste.';
+    errorEl.style.display = 'block';
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/auth/test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, role: selectedRole })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errorEl.textContent = data.error || 'Chave inválida';
+      errorEl.style.display = 'block';
+      return;
+    }
+    currentUser = data;
+    enterApp();
+  } catch (err) {
+    errorEl.textContent = 'Erro de conexão: ' + err.message;
+    errorEl.style.display = 'block';
+  }
+}
+
+function enterApp() {
+  const role = currentUser.role;
+  const roleNames = {
+    'diretor': 'Diretor',
+    'gerente-marketing': 'Gerente de Marketing',
+    'analista': 'Analista',
+    'desenvolvedor': 'Desenvolvedor'
+  };
+  document.getElementById('mainNav').style.display = 'none';
+  document.getElementById('sidebarProfile').style.display = 'flex';
+  document.getElementById('profileName').textContent = currentUser.nome;
+  document.getElementById('profileRole').textContent = roleNames[role] || role;
+  document.getElementById('devToggleArea').style.display = role === 'desenvolvedor' ? 'flex' : 'none';
+
+  const nav = document.getElementById('appNav');
+  nav.style.display = 'flex';
+  const navItems = [];
+
+  if (role === 'diretor' || role === 'desenvolvedor') {
+    navItems.push({ page: 'dashboard', icon: '📊', label: 'Dashboard' });
+  }
+  if (role === 'gerente-marketing' || role === 'desenvolvedor') {
+    navItems.push({ page: 'projetos', icon: '📋', label: 'Projetos' });
+  }
+  if (role === 'analista' || role === 'desenvolvedor') {
+    navItems.push({ page: 'cadastrar-projeto', icon: '➕', label: 'Cadastrar' });
+  }
+  if (role === 'analista' || role === 'desenvolvedor') {
+    navItems.push({ page: 'editar-projetos', icon: '✏️', label: 'Editar Projetos' });
+  }
+
+  nav.innerHTML = navItems.map((item, i) =>
+    `<button class="nav-item ${i === 0 ? 'active' : ''}" data-page="${item.page}" onclick="navegar('${item.page}')">
+      <span class="nav-icon">${item.icon}</span>
+      <span class="nav-label">${item.label}</span>
+    </button>`
+  ).join('');
+
+  if (navItems.length > 0) {
+    navegar(navItems[0].page);
+  }
+  loadProjects();
+  loadMarketingTeam();
+}
+
+function logout() {
+  currentUser = null;
+  selectedRole = null;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('mainNav').style.display = 'flex';
+  document.getElementById('appNav').style.display = 'none';
+  document.getElementById('appNav').innerHTML = '';
+  document.getElementById('sidebarProfile').style.display = 'none';
+  document.getElementById('loginStepRole').style.display = 'block';
+  document.getElementById('loginStepAuth').style.display = 'none';
+  document.getElementById('loginFormArea').style.display = 'none';
+  document.getElementById('registerFormArea').style.display = 'none';
+  document.getElementById('testFormArea').style.display = 'none';
+  document.getElementById('page-login').classList.add('active');
+  document.getElementById('loginCard').querySelectorAll('input').forEach(i => i.value = '');
+}
+
+function defaultPage() {
+  if (!currentUser) return 'login';
+  const role = currentUser.role;
+  if (role === 'diretor' || role === 'desenvolvedor') return 'dashboard';
+  if (role === 'gerente-marketing') return 'projetos';
+  if (role === 'analista') return 'cadastrar-projeto';
+  return 'login';
+}
 
 function navegar(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   document.getElementById(`page-${page}`).classList.add('active');
-  document.querySelector(`[data-page="${page}"]`).classList.add('active');
-}
-
-function switchLoginTab(tab) {
-  document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.login-panel').forEach(p => p.classList.remove('active'));
-  document.querySelector(`[data-login-tab="${tab}"]`).classList.add('active');
-  document.getElementById(`login-panel-${tab}`).classList.add('active');
-  document.getElementById('devError').style.display = 'none';
-  document.querySelectorAll('#mainNav .nav-item').forEach(i => i.classList.remove('active'));
-  document.querySelector(`#mainNav [data-page="${tab}"]`).classList.add('active');
-  document.getElementById('page-login').classList.add('active');
-}
-
-function loginDev() {
-  const key = document.getElementById('devKey').value;
-  if (key === '123') {
-    isAuthenticated = true;
-    document.getElementById('mainNav').style.display = 'none';
-    document.getElementById('appNav').style.display = 'flex';
-    document.getElementById('sidebarProfile').style.display = 'flex';
-    document.getElementById('devToggleArea').style.display = 'flex';
-    document.getElementById('devError').style.display = 'none';
-    navegar('dashboard');
-    loadProjects();
-    loadMarketingTeam();
-  } else {
-    document.getElementById('devError').style.display = 'block';
-  }
-}
-
-function logout() {
-  isAuthenticated = false;
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-  document.getElementById('mainNav').style.display = 'flex';
-  document.getElementById('appNav').style.display = 'none';
-  document.getElementById('sidebarProfile').style.display = 'none';
-  document.getElementById('devToggleArea').style.display = 'none';
-  document.getElementById('devKey').value = '';
-  switchLoginTab('login');
+  const btn = document.querySelector(`[data-page="${page}"]`);
+  if (btn) btn.classList.add('active');
+  if (page === 'editar-projetos') renderEditProjectsList();
+  if (page === 'projetos' || page === 'dashboard') renderProjects();
 }
 
 function formatDate(dateStr) {
@@ -64,6 +249,7 @@ function formatMoney(value) {
 
 function showNotification(message, type = 'info') {
   const area = document.getElementById('notificationArea');
+  if (!area) return;
   area.textContent = message;
   area.className = `notification notification-${type}`;
   area.style.display = 'block';
@@ -77,64 +263,9 @@ async function loadMarketingTeam() {
   try {
     const res = await fetch(`${API_BASE}/marketing-team`);
     marketingTeam = await res.json();
-    renderMarketingTeam();
   } catch (err) {
     console.error('Erro ao carregar equipe de marketing:', err);
   }
-}
-
-async function addMarketingMember() {
-  const nome = document.getElementById('mktNome').value.trim();
-  const email = document.getElementById('mktEmail').value.trim();
-  const vertical = document.getElementById('mktVertical').value;
-  if (!nome || !email || !vertical) {
-    alert('Preencha todos os campos do membro.');
-    return;
-  }
-  try {
-    const res = await fetch(`${API_BASE}/marketing-team`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nome, email, vertical })
-    });
-    if (!res.ok) throw new Error('Erro ao adicionar');
-    const member = await res.json();
-    marketingTeam.push(member);
-    renderMarketingTeam();
-    document.getElementById('mktNome').value = '';
-    document.getElementById('mktEmail').value = '';
-    showNotification(`${nome} adicionado à equipe de ${vertical}`, 'info');
-  } catch (err) {
-    alert('Erro ao adicionar membro: ' + err.message);
-  }
-}
-
-async function deleteMarketingMember(id) {
-  try {
-    await fetch(`${API_BASE}/marketing-team/${id}`, { method: 'DELETE' });
-    marketingTeam = marketingTeam.filter(m => m.id !== id);
-    renderMarketingTeam();
-  } catch (err) {
-    alert('Erro ao remover membro');
-  }
-}
-
-function renderMarketingTeam() {
-  const list = document.getElementById('marketingTeamList');
-  if (marketingTeam.length === 0) {
-    list.innerHTML = '<p class="empty-state">Nenhum membro cadastrado.</p>';
-    return;
-  }
-  list.innerHTML = marketingTeam.map(m => `
-    <div class="member-card">
-      <div>
-        <strong>${m.nome}</strong>
-        <span class="tag">${m.vertical}</span>
-        <span style="font-size:0.85rem;color:#666;margin-left:0.5rem">${m.email}</span>
-      </div>
-      <button class="btn-danger" onclick="deleteMarketingMember(${m.id})">Remover</button>
-    </div>
-  `).join('');
 }
 
 async function loadProjects() {
@@ -142,7 +273,7 @@ async function loadProjects() {
     const res = await fetch(`${API_BASE}/projects`);
     projects = await res.json();
     renderProjects();
-    updateStats();
+    updateDashboardStats();
     agent.setProjects(projects);
   } catch (err) {
     console.error('Erro ao carregar projetos:', err);
@@ -160,26 +291,26 @@ async function addProject(data) {
     const project = await res.json();
     projects.push(project);
     renderProjects();
-    updateStats();
+    updateDashboardStats();
     agent.setProjects(projects);
     if (project.precisaMarketing) {
       const team = marketingTeam.filter(m => m.vertical === project.vertical);
       if (team.length > 0) {
         const emails = team.map(m => m.email).join(', ');
         showNotification(
-          `IA detectou que "${project.nome}" precisa de marketing da vertical ${project.vertical}. Notificar: ${emails}`,
+          `IA detectou que "${project.nome}" precisa de marketing. Notificar: ${emails}`,
           'marketing'
         );
       } else {
         showNotification(
-          `IA detectou que "${project.nome}" precisa de marketing da vertical ${project.vertical}. Nenhum membro cadastrado nessa vertical.`,
+          `IA detectou que "${project.nome}" precisa de marketing. Nenhum membro cadastrado nessa vertical.`,
           'warning'
         );
       }
     } else {
       showNotification(`Projeto "${project.nome}" cadastrado com sucesso!`, 'info');
     }
-    navegar('dashboard');
+    navegar(defaultPage());
   } catch (err) {
     alert('Erro ao cadastrar projeto: ' + err.message);
   }
@@ -191,7 +322,7 @@ async function deleteProject(id) {
     await fetch(`${API_BASE}/projects/${id}`, { method: 'DELETE' });
     projects = projects.filter(p => p.id !== id);
     renderProjects();
-    updateStats();
+    updateDashboardStats();
     agent.setProjects(projects);
   } catch (err) {
     alert('Erro ao remover projeto');
@@ -200,8 +331,9 @@ async function deleteProject(id) {
 
 function renderProjects() {
   const list = document.getElementById('projectsList');
+  if (!list) return;
   if (projects.length === 0) {
-    list.innerHTML = '<p class="empty-state">Nenhum projeto cadastrado. Clique em <strong>"+"</strong> na barra lateral para criar um novo projeto.</p>';
+    list.innerHTML = '<p class="empty-state">Nenhum projeto cadastrado.</p>';
     return;
   }
   list.innerHTML = projects.map(p => {
@@ -215,7 +347,7 @@ function renderProjects() {
         <div class="project-info">
           <h4>${p.nome}</h4>
           <div class="project-responsavel">👤 ${p.responsavel || 'Sem responsável'}</div>
-          <div class="project-resumo">${p.descricao.substring(0, 100)}${p.descricao.length > 100 ? '...' : ''}</div>
+          <div class="project-resumo">${(p.descricao || '').substring(0, 100)}${(p.descricao || '').length > 100 ? '...' : ''}</div>
           <div class="project-meta">
             <span class="tag">${p.vertical}</span>
             <span class="tag ${urgente ? 'tag-urgent' : ''}">Prazo: ${formatDate(p.prazo)}</span>
@@ -234,15 +366,43 @@ function renderProjects() {
   }).join('');
 }
 
-function updateStats() {
-  document.getElementById('totalProjetos').textContent = projects.length;
+function updateDashboardStats() {
+  const totalEl = document.getElementById('totalProjetos');
+  const verticaisEl = document.getElementById('totalVerticais');
+  const marketingEl = document.getElementById('totalMarketing');
+  const custoEl = document.getElementById('totalCusto');
+  const lucroEl = document.getElementById('totalLucro');
+  if (totalEl) totalEl.textContent = projects.length;
   const verticais = new Set(projects.map(p => p.vertical));
-  document.getElementById('totalVerticais').textContent = verticais.size;
-  document.getElementById('totalMarketing').textContent = projects.filter(p => p.precisaMarketing).length;
+  if (verticaisEl) verticaisEl.textContent = verticais.size;
+  if (marketingEl) marketingEl.textContent = projects.filter(p => p.precisaMarketing).length;
   const custoTotal = projects.reduce((s, p) => s + (p.custo || 0), 0);
   const lucroTotal = projects.reduce((s, p) => s + (p.lucro || 0), 0);
-  document.getElementById('totalCusto').textContent = formatMoney(custoTotal);
-  document.getElementById('totalLucro').textContent = formatMoney(lucroTotal);
+  if (custoEl) custoEl.textContent = formatMoney(custoTotal);
+  if (lucroEl) lucroEl.textContent = formatMoney(lucroTotal);
+
+  const breakdown = document.getElementById('verticalBreakdown');
+  if (breakdown) {
+    if (projects.length === 0) {
+      breakdown.innerHTML = '<p class="empty-state">Nenhum projeto cadastrado.</p>';
+    } else {
+      const counts = {};
+      projects.forEach(p => { counts[p.vertical] = (counts[p.vertical] || 0) + 1; });
+      const total = projects.length;
+      breakdown.innerHTML = Object.entries(counts).map(([v, c]) => {
+        const pct = (c / total * 100).toFixed(0);
+        return `
+          <div class="vertical-bar">
+            <span class="vertical-bar-label">${v}</span>
+            <div class="vertical-bar-track">
+              <div class="vertical-bar-fill" style="width:${pct}%"></div>
+            </div>
+            <span class="vertical-bar-count">${c} (${pct}%)</span>
+          </div>
+        `;
+      }).join('');
+    }
+  }
 }
 
 function updateAICriteriaPreview() {
@@ -267,10 +427,10 @@ function updateAICriteriaPreview() {
   `;
 }
 
-document.getElementById('nome').addEventListener('input', updateAICriteriaPreview);
-document.getElementById('descricao').addEventListener('input', updateAICriteriaPreview);
+document.getElementById('nome')?.addEventListener('input', updateAICriteriaPreview);
+document.getElementById('descricao')?.addEventListener('input', updateAICriteriaPreview);
 
-document.getElementById('projectForm').addEventListener('submit', async (e) => {
+document.getElementById('projectForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const nome = document.getElementById('nome').value;
   const descricao = document.getElementById('descricao').value;
@@ -296,7 +456,7 @@ document.getElementById('projectForm').addEventListener('submit', async (e) => {
   e.target.reset();
 });
 
-document.getElementById('runAnalysisBtn').addEventListener('click', () => {
+document.getElementById('runAnalysisBtn')?.addEventListener('click', () => {
   if (projects.length === 0) {
     alert('Cadastre pelo menos um projeto antes de executar a análise.');
     return;
@@ -327,7 +487,7 @@ function renderAnalysis(analysis) {
       const marketingColor = (p.marketingScore || 0) >= 22 ? '#dc2626' : (p.marketingScore || 0) >= 18 ? '#d97706' : (p.marketingScore || 0) >= 13 ? '#2563eb' : '#6b7280';
       const priorityPct = ((p.priorityScore || 0) / 10) * 100;
       const priorityColor = (p.priorityScore || 0) >= 8 ? '#dc2626' : (p.priorityScore || 0) >= 5 ? '#d97706' : (p.priorityScore || 0) >= 3 ? '#2563eb' : '#6b7280';
-      const nivel = p.nivel || (p.nivel === 'Crítico' ? 'Crítico' : p.nivel === 'Crítica' ? 'Crítica' : 'Médio');
+      const nivel = p.nivel || 'Médio';
       const nivelClass = nivel === 'Crítica' || nivel === 'Crítico' ? 'critica' : nivel === 'Alta' ? 'alta' : nivel === 'Médio' || nivel === 'Media' ? 'media' : 'baixa';
       return `
         <div class="ai-item" style="background:${bg};border-radius:6px;padding:0.65rem;${isTop3 ? 'border:1px solid #fde68a;margin-bottom:0.35rem;' : 'margin-bottom:0.25rem;'}">
@@ -428,14 +588,106 @@ function renderAnalysis(analysis) {
   }
 }
 
-// ─── Inline Edit Mode ──────────────────────────────────────────────
+// ─── Edit Projects ──────────────────────────────
+
+function renderEditProjectsList() {
+  const list = document.getElementById('editProjectsList');
+  if (!list) return;
+  if (projects.length === 0) {
+    list.innerHTML = '<p class="empty-state">Nenhum projeto cadastrado.</p>';
+    return;
+  }
+  list.innerHTML = projects.map(p => {
+    const hoje = new Date();
+    const prazoDate = new Date(p.prazo + 'T23:59:59');
+    const diff = Math.ceil((prazoDate - hoje) / (1000 * 60 * 60 * 24));
+    const urgente = diff <= 7;
+    return `
+      <div class="project-card">
+        <div class="project-info">
+          <h4>${p.nome}</h4>
+          <div class="project-responsavel">👤 ${p.responsavel || 'Sem responsável'}</div>
+          <div class="project-meta">
+            <span class="tag">${p.vertical}</span>
+            <span class="tag ${urgente ? 'tag-urgent' : ''}">Prazo: ${formatDate(p.prazo)}</span>
+            <span class="tag">Equipe: ${p.equipe}</span>
+          </div>
+        </div>
+        <div class="project-actions">
+          <button class="btn-secondary" onclick="openEditModal(${p.id})">✏️ Editar</button>
+          <button class="btn-danger" onclick="deleteProject(${p.id})">Remover</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openEditModal(id) {
+  const p = projects.find(x => x.id === id);
+  if (!p) return;
+  editingProjectId = id;
+  document.getElementById('editNome').value = p.nome || '';
+  document.getElementById('editResponsavel').value = p.responsavel || '';
+  document.getElementById('editPrazo').value = p.prazo || '';
+  document.getElementById('editCusto').value = p.custo || '';
+  document.getElementById('editLucro').value = p.lucro || '';
+  document.getElementById('editEquipe').value = p.equipe || 1;
+  document.getElementById('editDescricao').value = p.descricao || '';
+
+  const sel = document.getElementById('editVertical');
+  const usedValues = [...new Set(projects.map(x => x.vertical))];
+  const allValues = ['Viagens', 'Conecta', 'Azul (Marca Mae)', 'Fidelidade', 'Logistica', 'TecOps'];
+  const options = [...new Set([...allValues, ...usedValues])];
+  sel.innerHTML = options.map(v => `<option value="${v}" ${v === p.vertical ? 'selected' : ''}>${v}</option>`).join('');
+
+  document.getElementById('editProjectModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+  editingProjectId = null;
+  document.getElementById('editProjectModal').style.display = 'none';
+}
+
+async function saveEditProject() {
+  if (!editingProjectId) return;
+  const data = {
+    nome: document.getElementById('editNome').value.trim(),
+    vertical: document.getElementById('editVertical').value,
+    responsavel: document.getElementById('editResponsavel').value.trim(),
+    prazo: document.getElementById('editPrazo').value,
+    custo: parseFloat(document.getElementById('editCusto').value) || 0,
+    lucro: parseFloat(document.getElementById('editLucro').value) || 0,
+    equipe: parseInt(document.getElementById('editEquipe').value) || 1,
+    descricao: document.getElementById('editDescricao').value.trim()
+  };
+  try {
+    const res = await fetch(`${API_BASE}/projects/${editingProjectId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error('Erro ao salvar');
+    const updated = await res.json();
+    const idx = projects.findIndex(p => p.id === editingProjectId);
+    if (idx !== -1) projects[idx] = updated;
+    closeEditModal();
+    renderEditProjectsList();
+    renderProjects();
+    updateDashboardStats();
+    agent.setProjects(projects);
+    showNotification('Projeto atualizado com sucesso!', 'info');
+  } catch (err) {
+    alert('Erro ao salvar: ' + err.message);
+  }
+}
+
+// ─── Dev Edit Mode ──────────────────────────────
 
 let editModeActive = false;
 
 const EDITABLE_SELECTORS = [
   { cat: 'nav_labels', sel: '#appNav .nav-item .nav-label', key: el => {
     const page = el.closest('.nav-item')?.dataset?.page;
-    const map = { dashboard:'nav_dashboard', 'novo-projeto':'nav_novo_projeto', 'equipe-marketing':'nav_equipe_marketing', editar:'nav_devtools' };
+    const map = { dashboard:'nav_dashboard', projetos:'nav_projetos', 'cadastrar-projeto':'nav_cadastrar', 'editar-projetos':'nav_editar' };
     return map[page] || page;
   }},
   { cat: 'ai_panels', sel: '.ai-panel h3', key: el => {
@@ -527,16 +779,13 @@ function restoreSnapshot(snap) {
 function toggleEditMode() {
   editModeActive = !editModeActive;
   const bar = document.getElementById('editModeBar');
-  const btn = document.getElementById('editModeBtn');
   const toggle = document.getElementById('editModeToggle');
   if (editModeActive) {
     bar.style.display = 'flex';
-    if (btn) btn.classList.add('active');
     if (toggle) toggle.checked = true;
     enableInlineEditing();
   } else {
     bar.style.display = 'none';
-    if (btn) btn.classList.remove('active');
     if (toggle) toggle.checked = false;
     disableInlineEditing();
   }
@@ -549,10 +798,8 @@ function cancelEditMode() {
   editModeActive = false;
   editModeSnapshot = null;
   const bar = document.getElementById('editModeBar');
-  const btn = document.getElementById('editModeBtn');
   const toggle = document.getElementById('editModeToggle');
   bar.style.display = 'none';
-  if (btn) btn.classList.remove('active');
   if (toggle) toggle.checked = false;
 }
 
@@ -915,4 +1162,4 @@ async function devPushNow() {
   }
 }
 
-navegar('login');
+showLogin();

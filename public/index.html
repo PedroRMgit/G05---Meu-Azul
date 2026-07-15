@@ -14,32 +14,13 @@
         <span class="logo-text">Meu Azul</span>
       </div>
       <nav class="sidebar-nav" id="mainNav">
-        <button class="nav-item active" data-page="login" onclick="switchLoginTab('login')">
+        <button class="nav-item active" data-page="login" onclick="showLogin()">
           <span class="nav-icon">🔐</span>
           <span class="nav-label">Login</span>
         </button>
-        <button class="nav-item" data-page="entrar" onclick="switchLoginTab('entrar')">
-          <span class="nav-icon">🚪</span>
-          <span class="nav-label">Entrar</span>
-        </button>
-        <button class="nav-item" data-page="desenvolvedor" onclick="switchLoginTab('desenvolvedor')">
-          <span class="nav-icon">⚙</span>
-          <span class="nav-label">Desenvolvedor</span>
-        </button>
       </nav>
       <nav class="sidebar-nav" id="appNav" style="display:none;">
-<button class="nav-item active" data-page="dashboard" onclick="navegar('dashboard')">
-          <span class="nav-icon">📊</span>
-          <span class="nav-label">Dashboard</span>
-        </button>
-<button class="nav-item" data-page="novo-projeto" onclick="navegar('novo-projeto')">
-          <span class="nav-icon plus-icon">+</span>
-          <span class="nav-label">Novo Projeto</span>
-        </button>
-<button class="nav-item" data-page="equipe-marketing" onclick="navegar('equipe-marketing')">
-          <span class="nav-icon">👥</span>
-          <span class="nav-label">Equipe Marketing</span>
-        </button>
+
 </nav>
       <div class="sidebar-dev-toggle" id="devToggleArea" style="display:none;padding:0.5rem 1.25rem;border-top:1px solid rgba(255,255,255,0.1);">
         <label class="toggle-switch" title="Ativar/desativar modo de edição">
@@ -51,8 +32,8 @@
       <div class="sidebar-profile" id="sidebarProfile" style="display:none;">
         <div class="profile-avatar">👤</div>
         <div class="profile-info">
-          <span class="profile-name">Desenvolvedor</span>
-          <span class="profile-role">Acesso Dev</span>
+          <span class="profile-name" id="profileName">Usuário</span>
+          <span class="profile-role" id="profileRole">Cargo</span>
         </div>
         <button class="logout-btn" onclick="logout()" title="Sair">🚪 Sair</button>
       </div>
@@ -61,47 +42,92 @@
     <main class="main-content">
       <div id="page-login" class="page active">
         <div class="login-container">
-          <div class="login-card">
+          <div class="login-card" id="loginCard">
             <div class="login-header">
               <span class="login-logo-icon">✈</span>
               <h1>Meu Azul</h1>
               <p class="login-subtitle">Plataforma de Gestão de Projetos</p>
             </div>
-            <div class="login-tabs">
-              <button class="login-tab active" data-login-tab="login" onclick="switchLoginTab('login')">Login</button>
-              <button class="login-tab" data-login-tab="entrar" onclick="switchLoginTab('entrar')">Entrar</button>
-              <button class="login-tab" data-login-tab="desenvolvedor" onclick="switchLoginTab('desenvolvedor')">Desenvolvedor</button>
+            <div id="loginStepRole">
+              <p style="color:#666;margin-bottom:1.25rem;text-align:center;">Selecione seu cargo para continuar</p>
+              <div class="role-cards">
+                <button class="role-card" onclick="selectRole('diretor')">
+                  <span class="role-icon">📊</span>
+                  <span class="role-name">Diretor</span>
+                  <span class="role-desc">Visão macro do negócio</span>
+                </button>
+                <button class="role-card" onclick="selectRole('gerente-marketing')">
+                  <span class="role-icon">📢</span>
+                  <span class="role-name">Gerente de Marketing</span>
+                  <span class="role-desc">Projetos e insights de IA</span>
+                </button>
+                <button class="role-card" onclick="selectRole('analista')">
+                  <span class="role-icon">✏️</span>
+                  <span class="role-name">Analista</span>
+                  <span class="role-desc">Cadastro e edição de projetos</span>
+                </button>
+                <button class="role-card" onclick="selectRole('desenvolvedor')">
+                  <span class="role-icon">⚙️</span>
+                  <span class="role-name">Desenvolvedor</span>
+                  <span class="role-desc">Acesso completo ao sistema</span>
+                </button>
+              </div>
             </div>
-            <div class="login-content">
-              <div id="login-panel-login" class="login-panel active">
-                <p style="color:#666;margin-bottom:1rem;text-align:center;">Faça login com seu email institucional</p>
-                <form onsubmit="return false;">
-                  <div class="form-group">
-                    <label for="loginEmail">Email</label>
-                    <input type="email" id="loginEmail" placeholder="seu@azul.com.br">
-                  </div>
-                  <div class="form-group">
-                    <label for="loginSenha">Senha</label>
-                    <input type="password" id="loginSenha" placeholder="Digite sua senha">
-                  </div>
-                  <button type="submit" class="btn-primary" style="width:100%;margin-top:0.5rem;" onclick="alert('Login ainda não implementado. Use a aba Desenvolvedor com a chave 123.')">Entrar</button>
-                </form>
+            <div id="loginStepAuth" style="display:none;">
+              <button class="btn-back" onclick="backToRoleSelection()">← Voltar</button>
+              <p style="color:#666;margin-bottom:1rem;text-align:center;" id="authSubtitle">Escolha como deseja acessar</p>
+              <div class="auth-options">
+                <button class="auth-option" onclick="showLoginForm()">
+                  <span class="auth-option-icon">🔐</span>
+                  <span class="auth-option-title">Login</span>
+                  <span class="auth-option-desc">Já possui conta? Faça login</span>
+                </button>
+                <button class="auth-option" onclick="showRegisterForm()">
+                  <span class="auth-option-icon">📝</span>
+                  <span class="auth-option-title">Criar Conta</span>
+                  <span class="auth-option-desc">Registre-se no sistema</span>
+                </button>
+                <button class="auth-option" onclick="showTestForm()">
+                  <span class="auth-option-icon">🧪</span>
+                  <span class="auth-option-title">Teste</span>
+                  <span class="auth-option-desc">Acesse com chave de teste</span>
+                </button>
               </div>
-              <div id="login-panel-entrar" class="login-panel">
-                <p style="color:#666;margin-bottom:1rem;text-align:center;">Acesse com sua conta corporativa</p>
-                <div style="display:flex;flex-direction:column;gap:0.75rem;">
-                  <button class="btn-outline" style="width:100%;padding:0.85rem;" onclick="alert('Login corporativo ainda não implementado. Use a aba Desenvolvedor com a chave 123.')">Entrar com Google</button>
-                  <button class="btn-outline" style="width:100%;padding:0.85rem;" onclick="alert('Login corporativo ainda não implementado. Use a aba Desenvolvedor com a chave 123.')">Entrar com Microsoft</button>
-                </div>
-              </div>
-              <div id="login-panel-desenvolvedor" class="login-panel">
-                <p style="color:#666;margin-bottom:1rem;text-align:center;">Acesso para desenvolvedores</p>
+              <div id="loginFormArea" style="display:none;">
                 <div class="form-group">
-                  <label for="devKey">Chave de Acesso</label>
-                  <input type="password" id="devKey" placeholder="Digite a chave de desenvolvedor">
+                  <label for="loginEmail">Email</label>
+                  <input type="email" id="loginEmail" placeholder="seu@azul.com.br">
                 </div>
-                <button class="btn-primary" style="width:100%;margin-top:0.5rem;" onclick="loginDev()">Acessar</button>
-                <p id="devError" style="color:#dc2626;font-size:0.85rem;margin-top:0.5rem;display:none;text-align:center;">Chave inválida. Tente novamente.</p>
+                <div class="form-group">
+                  <label for="loginSenha">Senha</label>
+                  <input type="password" id="loginSenha" placeholder="Digite sua senha">
+                </div>
+                <p id="loginError" style="color:#dc2626;font-size:0.85rem;display:none;text-align:center;"></p>
+                <button class="btn-primary" style="width:100%;margin-top:0.5rem;" onclick="doLogin()">Entrar</button>
+              </div>
+              <div id="registerFormArea" style="display:none;">
+                <div class="form-group">
+                  <label for="registerNome">Nome</label>
+                  <input type="text" id="registerNome" placeholder="Seu nome completo">
+                </div>
+                <div class="form-group">
+                  <label for="registerEmail">Email</label>
+                  <input type="email" id="registerEmail" placeholder="seu@azul.com.br">
+                </div>
+                <div class="form-group">
+                  <label for="registerSenha">Senha</label>
+                  <input type="password" id="registerSenha" placeholder="Crie uma senha">
+                </div>
+                <p id="registerError" style="color:#dc2626;font-size:0.85rem;display:none;text-align:center;"></p>
+                <button class="btn-primary" style="width:100%;margin-top:0.5rem;" onclick="doRegister()">Criar Conta</button>
+              </div>
+              <div id="testFormArea" style="display:none;">
+                <div class="form-group">
+                  <label for="testKey">Chave de Acesso</label>
+                  <input type="password" id="testKey" placeholder="Digite a chave de teste">
+                </div>
+                <p id="testError" style="color:#dc2626;font-size:0.85rem;display:none;text-align:center;">Chave inválida. Tente novamente.</p>
+                <button class="btn-primary" style="width:100%;margin-top:0.5rem;" onclick="doTest()">Acessar</button>
               </div>
             </div>
           </div>
@@ -110,10 +136,10 @@
 
       <div id="page-dashboard" class="page">
         <div class="page-header">
-          <h1>Dashboard de Projetos</h1>
-          <p class="page-subtitle">Visão geral e análises inteligentes</p>
+          <h1>Dashboard</h1>
+          <p class="page-subtitle">Visão macro de todos os projetos</p>
         </div>
-
+        <div id="notificationArea" class="notification" style="display:none;"></div>
         <div class="stats-bar">
           <div class="stat-card">Total: <span id="totalProjetos">0</span></div>
           <div class="stat-card">Verticais: <span id="totalVerticais">0</span></div>
@@ -121,16 +147,23 @@
           <div class="stat-card">Custo Total: <span id="totalCusto">R$ 0</span></div>
           <div class="stat-card">Lucro Total: <span id="totalLucro">R$ 0</span></div>
         </div>
-
-        <div id="notificationArea" class="notification" style="display:none;"></div>
-
         <div class="section-block">
-          <h2>Projetos</h2>
+          <h2>Projetos por Vertical</h2>
+          <div id="verticalBreakdown"><p class="empty-state">Nenhum projeto cadastrado.</p></div>
+        </div>
+      </div>
+
+      <div id="page-projetos" class="page">
+        <div class="page-header">
+          <h1>Projetos</h1>
+          <p class="page-subtitle">Todos os projetos e análises inteligentes</p>
+        </div>
+        <div class="section-block">
+          <h2>Lista de Projetos</h2>
           <div class="projects-list" id="projectsList">
-            <p class="empty-state">Nenhum projeto cadastrado. Clique em <strong>"+"</strong> na barra lateral para criar um novo projeto.</p>
+            <p class="empty-state">Nenhum projeto cadastrado.</p>
           </div>
         </div>
-
         <div class="section-block">
           <div class="section-header">
             <h2>Agente de IA - Análise Inteligente</h2>
@@ -161,12 +194,11 @@
         </div>
       </div>
 
-      <div id="page-novo-projeto" class="page">
+      <div id="page-cadastrar-projeto" class="page">
         <div class="page-header">
-          <h1>Cadastrar Novo Projeto</h1>
-          <p class="page-subtitle">Preencha os dados do projeto</p>
+          <h1>Cadastrar Projeto</h1>
+          <p class="page-subtitle">Preencha os dados do novo projeto</p>
         </div>
-
         <div class="section-block">
           <form id="projectForm">
             <div class="form-grid">
@@ -179,15 +211,11 @@
                 <select id="vertical" required>
 <option value="Viagens">Viagens</option>
 <option value="Conecta">Conecta</option>
-<option value="Conecta">Conecta</option>
+<option value="Fidelidade">Fidelidade</option>
+<option value="Logistica">Logistica</option>
+<option value="TecOps">TecOps</option>
 <option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
-<option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
-<option value="">Selecione...</option>
 <option value="azul">Azul</option>
-<option value="viagens">Viagens</option>
-<option value="fidelidade">Fidelidade</option>
-<option value="logistica">Logistica</option>
-<option value="tecops">TecOps</option>
 </select>
               </div>
               <div class="form-group">
@@ -224,57 +252,25 @@
               </div>
             </div>
             <div class="form-actions">
-              <button type="button" class="btn-outline" onclick="navegar('dashboard')">Cancelar</button>
+              <button type="button" class="btn-outline" onclick="navegar(defaultPage())">Cancelar</button>
               <button type="submit" class="btn-primary">Cadastrar Projeto</button>
             </div>
           </form>
         </div>
       </div>
 
-      <div id="page-equipe-marketing" class="page">
+      <div id="page-editar-projetos" class="page">
         <div class="page-header">
-          <h1>Equipe de Marketing</h1>
-          <p class="page-subtitle">Cadastre os membros da equipe de marketing por vertical</p>
+          <h1>Editar Projetos</h1>
+          <p class="page-subtitle">Visualize e edite os projetos existentes</p>
         </div>
-
         <div class="section-block">
-          <p style="font-size:0.9rem;color:#666;margin-bottom:1rem;">
-            Quando a IA detectar que um projeto precisa de apoio de marketing, ou ranquear o Top 3 projetos com maior potencial de marketing, os emails cadastrados aqui serão notificados automaticamente.
-          </p>
-          <div class="marketing-form">
-            <div class="form-group">
-              <label for="mktVertical">Vertical</label>
-              <select id="mktVertical">
-<option value="Viagens">Viagens</option>
-<option value="Conecta">Conecta</option>
-<option value="Conecta">Conecta</option>
-<option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
-<option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
-<option value="">Selecione...</option>
-<option value="azul">Azul</option>
-<option value="viagens">Viagens</option>
-<option value="fidelidade">Fidelidade</option>
-<option value="logistica">Logistica</option>
-<option value="tecops">TecOps</option>
-</select>
-            </div>
-            <div class="form-group">
-              <label for="mktNome">Nome</label>
-              <input type="text" id="mktNome" placeholder="Ex: Maria Silva">
-            </div>
-            <div class="form-group">
-              <label for="mktEmail">Email</label>
-              <input type="email" id="mktEmail" placeholder="maria@azul.com.br">
-            </div>
-            <div class="form-group" style="align-self:flex-end;">
-              <button class="btn-primary" onclick="addMarketingMember()" style="margin-top:0;">Adicionar</button>
-            </div>
-          </div>
-          <div id="marketingTeamList" style="margin-top:1rem;">
-            <p class="empty-state">Nenhum membro cadastrado.</p>
+          <div id="editProjectsList">
+            <p class="empty-state">Nenhum projeto cadastrado.</p>
           </div>
         </div>
       </div>
+
       <div id="editModeBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#003399;color:white;padding:0.5rem 1rem;display:none;align-items:center;gap:0.75rem;box-shadow:0 2px 12px rgba(0,0,0,0.3);">
         <span style="font-weight:700;font-size:0.9rem;">🔧 MODO EDIÇÃO</span>
         <span style="font-size:0.78rem;opacity:0.8;flex:1;">Clique nos textos para editar • Arraste itens para reordenar</span>
@@ -283,8 +279,56 @@
         <button class="btn-primary" style="background:#f59e0b;color:white;border:none;padding:0.35rem 1rem;font-size:0.82rem;" onclick="devPushNow()">🚀 Push</button>
       </div>
       <div id="editModeNotification" style="display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:9999;padding:0.5rem 1rem;border-radius:8px;font-size:0.85rem;font-weight:500;box-shadow:0 2px 8px rgba(0,0,0,0.15);"></div>
+    </main>
+  </div>
 
-      </main>
+  <div id="editProjectModal" class="modal-overlay" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Editar Projeto</h2>
+        <button class="modal-close" onclick="closeEditModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="editProjectForm" class="form-grid">
+          <div class="form-group">
+            <label for="editNome">Nome</label>
+            <input type="text" id="editNome">
+          </div>
+          <div class="form-group">
+            <label for="editVertical">Vertical</label>
+            <select id="editVertical"></select>
+          </div>
+          <div class="form-group">
+            <label for="editResponsavel">Responsável</label>
+            <input type="text" id="editResponsavel">
+          </div>
+          <div class="form-group">
+            <label for="editPrazo">Prazo</label>
+            <input type="date" id="editPrazo">
+          </div>
+          <div class="form-group">
+            <label for="editCusto">Custo (R$)</label>
+            <input type="number" id="editCusto" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label for="editLucro">Lucro (R$)</label>
+            <input type="number" id="editLucro" min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label for="editEquipe">Equipe</label>
+            <input type="number" id="editEquipe" min="1">
+          </div>
+          <div class="form-group full-width">
+            <label for="editDescricao">Descrição</label>
+            <textarea id="editDescricao"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" onclick="closeEditModal()">Cancelar</button>
+        <button class="btn-primary" onclick="saveEditProject()">Salvar</button>
+      </div>
+    </div>
   </div>
 
   <script src="js/ai-agent.js"></script>

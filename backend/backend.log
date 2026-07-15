@@ -1,0 +1,13 @@
+/usr/local/python/3.12.1/lib/python3.12/site-packages/pydantic/_internal/_fields.py:160: UserWarning: Field "model_used" has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+INFO:     Started server process [27078]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:52250 - "GET /docs HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [27078]

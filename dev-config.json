@@ -15,15 +15,15 @@
         "value": "Conecta"
       },
       {
-        "key": "fidelidade",
+        "key": "Fidelidade",
         "value": "Fidelidade"
       },
       {
-        "key": "logistica",
+        "key": "Logistica",
         "value": "Logistica"
       },
       {
-        "key": "tecops",
+        "key": "TecOps",
         "value": "TecOps"
       }
     ]
@@ -36,12 +36,16 @@
         "value": "Dashboard"
       },
       {
-        "key": "nav_novo_projeto",
-        "value": "Novo Projeto"
+        "key": "nav_projetos",
+        "value": "Projetos"
       },
       {
-        "key": "nav_equipe_marketing",
-        "value": "Equipe Marketing"
+        "key": "nav_cadastrar",
+        "value": "Cadastrar"
+      },
+      {
+        "key": "nav_editar",
+        "value": "Editar Projetos"
       }
     ]
   },

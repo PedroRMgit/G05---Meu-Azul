@@ -1,0 +1,48 @@
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon">✈</span>
+    <span class="logo-text">Meu Azul</span>
+  </div>
+  <nav class="sidebar-nav" id="mainNav" style="display:flex;">
+    <button class="nav-item active" data-page="login" onclick="switchLoginTab('login')">
+      <span class="nav-icon">🔐</span>
+      <span class="nav-label">Login</span>
+    </button>
+    <button class="nav-item" data-page="entrar" onclick="switchLoginTab('entrar')">
+      <span class="nav-icon">🚪</span>
+      <span class="nav-label">Entrar</span>
+    </button>
+    <button class="nav-item" data-page="desenvolvedor" onclick="switchLoginTab('desenvolvedor')">
+      <span class="nav-icon">⚙</span>
+      <span class="nav-label">Desenvolvedor</span>
+    </button>
+  </nav>
+  <nav class="sidebar-nav" id="appNav" style="display:none;">
+    <% var navItems = config.nav_labels ? config.nav_labels.items : []; %>
+    <% navItems.forEach(function(item) { %>
+      <% var pageMap = { nav_dashboard: 'dashboard', nav_novo_projeto: 'novo-projeto', nav_equipe_marketing: 'equipe-marketing' }; %>
+      <% var page = pageMap[item.key] || item.key; %>
+      <% var icons = { nav_dashboard: '📊', nav_novo_projeto: '+', nav_equipe_marketing: '👥' }; %>
+      <% var icon = icons[item.key] || '📄'; %>
+      <button class="nav-item" data-page="<%= page %>" onclick="navegar('<%= page %>')">
+        <span class="nav-icon <%= item.key === 'nav_novo_projeto' ? 'plus-icon' : '' %>"><%= icon %></span>
+        <span class="nav-label"><%= item.value %></span>
+      </button>
+    <% }); %>
+  </nav>
+  <div class="sidebar-dev-toggle" id="devToggleArea" style="display:none;padding:0.5rem 1.25rem;border-top:1px solid rgba(255,255,255,0.1);">
+    <label class="toggle-switch" title="Ativar/desativar modo de edição">
+      <span class="toggle-label">🔧 Editar</span>
+      <input type="checkbox" id="editModeToggle" onchange="toggleEditMode()">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <div class="sidebar-profile" id="sidebarProfile" style="display:none;">
+    <div class="profile-avatar">👤</div>
+    <div class="profile-info">
+      <span class="profile-name">Desenvolvedor</span>
+      <span class="profile-role">Acesso Dev</span>
+    </div>
+    <button class="logout-btn" onclick="logout()" title="Sair">🚪 Sair</button>
+  </div>
+</aside>
