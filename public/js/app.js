@@ -220,6 +220,7 @@ function renderProjects() {
             ${p.lucro > 0 ? `<span class="tag tag-profit">Lucro: ${formatMoney(p.lucro)}</span>` : ''}
             ${lucroLiquido > 0 ? `<span class="tag tag-profit">💰 ${formatMoney(lucroLiquido)}</span>` : ''}
             ${p.precisaMarketing ? '<span class="tag tag-marketing">Requer Marketing</span>' : ''}
+            ${(p.cViability || p.cImpact || p.cAreas || p.cAlignment || p.cInnovation) ? `<span class="tag tag-marketing">Mkt: ${(p.cViability||3)+(p.cImpact||3)+(p.cAreas||3)+(p.cAlignment||3)+(p.cInnovation||3)}/25</span>` : ''}
           </div>
         </div>
         <div class="project-actions">
@@ -254,7 +255,12 @@ document.getElementById('projectForm').addEventListener('submit', async (e) => {
     precisaMarketing: agent.detectarNecessidadeMarketing({
       nome: document.getElementById('nome').value,
       descricao: document.getElementById('descricao').value
-    })
+    }),
+    cViability: parseInt(document.getElementById('cViability').value) || 3,
+    cImpact: parseInt(document.getElementById('cImpact').value) || 3,
+    cAreas: parseInt(document.getElementById('cAreas').value) || 3,
+    cAlignment: parseInt(document.getElementById('cAlignment').value) || 3,
+    cInnovation: parseInt(document.getElementById('cInnovation').value) || 3
   };
   await addProject(data);
   e.target.reset();
@@ -270,6 +276,53 @@ document.getElementById('runAnalysisBtn').addEventListener('click', () => {
 });
 
 function renderAnalysis(analysis) {
+  const marketingRankingEl = document.getElementById('marketingRankingContent');
+  if (!analysis.marketingRanking || analysis.marketingRanking.length === 0) {
+    marketingRankingEl.innerHTML = '<p class="empty-state">Nenhum projeto para ranquear.</p>';
+  } else {
+    const top3 = analysis.marketingRanking.slice(0, 3);
+    const medals = ['🥇', '🥈', '🥉'];
+    marketingRankingEl.innerHTML = analysis.marketingRanking.map((p, i) => {
+      const isTop3 = i < 3;
+      const bg = isTop3 ? '#fffbe6' : 'transparent';
+      const medal = isTop3 ? medals[i] : `<span style="font-size:0.8rem;color:#999;">#${i+1}</span>`;
+      const pct = (p.score / 25) * 100;
+      const color = p.score >= 22 ? '#dc2626' : p.score >= 18 ? '#d97706' : p.score >= 13 ? '#2563eb' : '#6b7280';
+      return `
+        <div class="ai-item" style="background:${bg};border-radius:6px;padding:0.65rem;${isTop3 ? 'border:1px solid #fde68a;margin-bottom:0.35rem;' : ''}">
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <span style="font-size:1.1rem;">${medal}</span>
+            <strong style="flex:1;">${p.nome}</strong>
+            <span class="tag">${p.vertical}</span>
+            <span class="badge badge-${p.nivel === 'Crítico' ? 'critica' : p.nivel === 'Alto' ? 'alta' : p.nivel === 'Médio' ? 'media' : 'baixa'}">${p.nivel}</span>
+          </div>
+          <div style="display:flex;gap:0.5rem;margin-top:0.35rem;flex-wrap:wrap;font-size:0.75rem;color:#666;">
+            <span>Viab: ${p.viabilidade}/5</span>
+            <span>Impacto: ${p.impacto}/5</span>
+            <span>Áreas: ${p.areas}/5</span>
+            <span>Estratégia: ${p.alinhamento}/5</span>
+            <span>Inovação: ${p.inovacao}/5</span>
+          </div>
+          <div class="priority-bar" style="margin-top:0.25rem;">
+            <span style="font-size:0.75rem;color:#666;font-weight:600;">Score Marketing: ${p.score}/25</span>
+            <div class="priority-fill"><span style="width:${pct}%;background:${color}"></span></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (top3.length > 0) {
+      const team = marketingTeam.filter(t => top3.some(p => p.vertical === t.vertical));
+      if (team.length > 0) {
+        const emails = [...new Set(team.map(t => t.email))].join(', ');
+        showNotification(
+          `🏆 Top 3 projetos para marketing enviados para: ${emails}`,
+          'marketing'
+        );
+      }
+    }
+  }
+
   const conflitosEl = document.getElementById('conflitosContent');
   if (analysis.conflitos.length === 0) {
     conflitosEl.innerHTML = '<p class="empty-state">Nenhum conflito detectado.</p>';

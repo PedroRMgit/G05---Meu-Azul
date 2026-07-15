@@ -295,6 +295,21 @@ body {
   resize: vertical;
 }
 
+.criteria-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+}
+
+.criteria-grid .form-group label {
+  font-size: 0.78rem;
+}
+
+.criteria-grid .form-group select {
+  font-size: 0.82rem;
+  padding: 0.5rem 0.5rem;
+}
+
 .form-actions {
   display: flex;
   gap: 0.75rem;
@@ -665,6 +680,10 @@ body {
   }
 
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .criteria-grid {
     grid-template-columns: 1fr;
   }
 

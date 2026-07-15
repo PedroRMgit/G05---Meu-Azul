@@ -143,6 +143,10 @@
               <div id="marketingContent"><p class="empty-state">Nenhuma solicitação de marketing.</p></div>
             </div>
             <div class="ai-panel">
+              <h3>🏆 Ranking Marketing</h3>
+              <div id="marketingRankingContent"><p class="empty-state">Execute a análise para ver o ranking.</p></div>
+            </div>
+            <div class="ai-panel">
               <h3>🏆 Prioridades</h3>
               <div id="prioridadesContent"><p class="empty-state">Nenhuma prioridade calculada.</p></div>
             </div>
@@ -203,6 +207,61 @@
                 <label for="descricao">Descrição do Projeto *</label>
                 <textarea id="descricao" required placeholder="Descreva o objetivo, escopo e entregas do projeto..."></textarea>
               </div>
+              <div class="form-group full-width" style="margin-top:0.5rem;">
+                <div style="font-weight:600;font-size:0.85rem;color:#333;margin-bottom:0.75rem;">Critérios de Marketing (1 a 5)</div>
+                <div class="criteria-grid">
+                  <div class="form-group">
+                    <label for="cViability">Viabilidade</label>
+                    <select id="cViability">
+                      <option value="3">3 - Médio</option>
+                      <option value="1">1 - Muito Baixa</option>
+                      <option value="2">2 - Baixa</option>
+                      <option value="4">4 - Alta</option>
+                      <option value="5">5 - Muito Alta</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="cImpact">Impacto no Cliente</label>
+                    <select id="cImpact">
+                      <option value="3">3 - Médio</option>
+                      <option value="1">1 - Muito Baixo</option>
+                      <option value="2">2 - Baixo</option>
+                      <option value="4">4 - Alto</option>
+                      <option value="5">5 - Muito Alto</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="cAreas">Áreas Envolvidas</label>
+                    <select id="cAreas">
+                      <option value="3">3 - Médias</option>
+                      <option value="1">1 - Muito Poucas</option>
+                      <option value="2">2 - Poucas</option>
+                      <option value="4">4 - Muitas</option>
+                      <option value="5">5 - Muitíssimas</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="cAlignment">Alinhamento Estratégico</label>
+                    <select id="cAlignment">
+                      <option value="3">3 - Médio</option>
+                      <option value="1">1 - Muito Baixo</option>
+                      <option value="2">2 - Baixo</option>
+                      <option value="4">4 - Alto</option>
+                      <option value="5">5 - Muito Alto</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="cInnovation">Potencial de Inovação</label>
+                    <select id="cInnovation">
+                      <option value="3">3 - Médio</option>
+                      <option value="1">1 - Muito Baixo</option>
+                      <option value="2">2 - Baixo</option>
+                      <option value="4">4 - Alto</option>
+                      <option value="5">5 - Muito Alto</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="form-actions">
               <button type="button" class="btn-outline" onclick="navegar('dashboard')">Cancelar</button>
@@ -220,7 +279,7 @@
 
         <div class="section-block">
           <p style="font-size:0.9rem;color:#666;margin-bottom:1rem;">
-            Quando a IA detectar que um projeto precisa de apoio de marketing, os emails cadastrados aqui serão notificados automaticamente.
+            Quando a IA detectar que um projeto precisa de apoio de marketing, ou ranquear o Top 3 projetos com maior potencial de marketing, os emails cadastrados aqui serão notificados automaticamente.
           </p>
           <div class="marketing-form">
             <div class="form-group">

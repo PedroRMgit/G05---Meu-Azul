@@ -12,9 +12,31 @@ class AIAgent {
       conflitos: this.detectarConflitos(),
       oportunidades: this.identificarOportunidades(),
       marketingRequests: this.identificarMarketingRequests(),
+      marketingRanking: this.rankProjetosMarketing(),
       prioridades: this.avaliarPrioridades(),
       resumos: this.gerarResumos()
     };
+  }
+
+  rankProjetosMarketing() {
+    return this.projects
+      .map(p => {
+        const score = (p.cViability || 3) + (p.cImpact || 3) + (p.cAreas || 3) + (p.cAlignment || 3) + (p.cInnovation || 3);
+        const nivel = score >= 22 ? 'Crítico' : score >= 18 ? 'Alto' : score >= 13 ? 'Médio' : 'Baixo';
+        return {
+          id: p.id,
+          nome: p.nome,
+          vertical: p.vertical,
+          score,
+          nivel,
+          viabilidade: p.cViability || 3,
+          impacto: p.cImpact || 3,
+          areas: p.cAreas || 3,
+          alinhamento: p.cAlignment || 3,
+          inovacao: p.cInnovation || 3
+        };
+      })
+      .sort((a, b) => b.score - a.score);
   }
 
   detectarConflitos() {
@@ -81,6 +103,11 @@ class AIAgent {
         vertical: p.vertical,
         mensagem: `O projeto "${p.nome}" da vertical ${p.vertical} solicitou apoio de marketing.`
       }));
+  }
+
+  getTop3Marketing() {
+    const ranking = this.rankProjetosMarketing();
+    return ranking.slice(0, 3);
   }
 
   avaliarPrioridades() {
