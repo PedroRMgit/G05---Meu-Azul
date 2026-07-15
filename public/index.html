@@ -3,107 +3,186 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meu Azul - Dashboard de Projetos</title>
+  <title>Meu Azul - Dashboard</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="header">
-    <div class="header-content">
-      <div class="logo">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
         <span class="logo-icon">✈</span>
-        <h1>Meu Azul</h1>
+        <span class="logo-text">Meu Azul</span>
       </div>
-      <p class="subtitle">Dashboard de Projetos - Colaboradores</p>
-    </div>
-  </header>
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-page="dashboard" onclick="navegar('dashboard')">
+          <span class="nav-icon">📊</span>
+          <span class="nav-label">Dashboard</span>
+        </button>
+        <button class="nav-item" data-page="novo-projeto" onclick="navegar('novo-projeto')">
+          <span class="nav-icon plus-icon">+</span>
+          <span class="nav-label">Novo Projeto</span>
+        </button>
+        <button class="nav-item" data-page="equipe-marketing" onclick="navegar('equipe-marketing')">
+          <span class="nav-icon">👥</span>
+          <span class="nav-label">Equipe Marketing</span>
+        </button>
+      </nav>
+    </aside>
 
-  <main class="container">
-    <section class="form-section">
-      <h2>Cadastrar Novo Projeto</h2>
-      <form id="projectForm">
-        <div class="form-grid">
-          <div class="form-group">
-            <label for="nome">Nome do Projeto *</label>
-            <input type="text" id="nome" required placeholder="Ex: Otimização de Rotas">
-          </div>
-          <div class="form-group">
-            <label for="setor">Setor *</label>
-            <select id="setor" required>
-              <option value="">Selecione...</option>
-              <option value="Operações">Operações</option>
-              <option value="Manutenção">Manutenção</option>
-              <option value="Marketing">Marketing</option>
-              <option value="TI">TI</option>
-              <option value="RH">RH</option>
-              <option value="Financeiro">Financeiro</option>
-              <option value="Comercial">Comercial</option>
-              <option value="Logística">Logística</option>
-              <option value="Segurança">Segurança</option>
-              <option value="Atendimento">Atendimento</option>
-            </select>
-          </div>
-          <div class="form-group full-width">
-            <label for="descricao">Descrição do Projeto *</label>
-            <textarea id="descricao" required placeholder="Descreva o objetivo, escopo e entregas do projeto..."></textarea>
-          </div>
-          <div class="form-group">
-            <label for="prazo">Prazo *</label>
-            <input type="date" id="prazo" required>
-          </div>
-          <div class="form-group">
-            <label for="equipe">Tamanho da Equipe</label>
-            <input type="number" id="equipe" min="1" value="1">
-          </div>
-          <div class="form-group checkbox-group">
-            <label>
-              <input type="checkbox" id="precisaMarketing">
-              Precisa de apoio de Marketing
-            </label>
-          </div>
+    <main class="main-content">
+      <div id="page-dashboard" class="page active">
+        <div class="page-header">
+          <h1>Dashboard de Projetos</h1>
+          <p class="page-subtitle">Visão geral e análises inteligentes</p>
         </div>
-        <button type="submit" class="btn-primary">Cadastrar Projeto</button>
-      </form>
-    </section>
 
-    <section class="dashboard-section">
-      <h2>Dashboard de Projetos</h2>
-      <div class="stats-bar" id="statsBar">
-        <div class="stat-card">Total: <span id="totalProjetos">0</span></div>
-        <div class="stat-card">Setores: <span id="totalSetores">0</span></div>
-        <div class="stat-card">Marketing: <span id="totalMarketing">0</span></div>
-      </div>
-      <div class="projects-list" id="projectsList">
-        <p class="empty-state">Nenhum projeto cadastrado. Use o formulário acima.</p>
-      </div>
-    </section>
+        <div class="stats-bar">
+          <div class="stat-card">Total: <span id="totalProjetos">0</span></div>
+          <div class="stat-card">Verticais: <span id="totalVerticais">0</span></div>
+          <div class="stat-card">Marketing: <span id="totalMarketing">0</span></div>
+          <div class="stat-card">Custo Total: <span id="totalCusto">R$ 0</span></div>
+          <div class="stat-card">Lucro Total: <span id="totalLucro">R$ 0</span></div>
+        </div>
 
-    <section class="ai-section">
-      <h2>Agente de IA - Análise Inteligente</h2>
-      <button id="runAnalysisBtn" class="btn-secondary">Executar Análise Completa</button>
-      <div class="ai-results" id="aiResults">
-        <div class="ai-panel">
-          <h3>⚡ Conflitos Detectados</h3>
-          <div id="conflitosContent"><p class="empty-state">Nenhum conflito detectado ainda.</p></div>
+        <div id="notificationArea" class="notification" style="display:none;"></div>
+
+        <div class="section-block">
+          <h2>Projetos</h2>
+          <div class="projects-list" id="projectsList">
+            <p class="empty-state">Nenhum projeto cadastrado. Clique em <strong>"+"</strong> na barra lateral para criar um novo projeto.</p>
+          </div>
         </div>
-        <div class="ai-panel">
-          <h3>⏱ Oportunidades de Economia</h3>
-          <div id="oportunidadesContent"><p class="empty-state">Nenhuma oportunidade identificada ainda.</p></div>
-        </div>
-        <div class="ai-panel">
-          <h3>📢 Apoio de Marketing</h3>
-          <div id="marketingContent"><p class="empty-state">Nenhuma solicitação de marketing.</p></div>
-        </div>
-        <div class="ai-panel">
-          <h3>🏆 Prioridades</h3>
-          <div id="prioridadesContent"><p class="empty-state">Nenhuma prioridade calculada.</p></div>
-        </div>
-        <div class="ai-panel full-width">
-          <h3>📋 Resumo Exclusivo dos Projetos</h3>
-          <div id="resumosContent"><p class="empty-state">Nenhum resumo disponível.</p></div>
+
+        <div class="section-block">
+          <div class="section-header">
+            <h2>Agente de IA - Análise Inteligente</h2>
+            <button id="runAnalysisBtn" class="btn-secondary">Executar Análise</button>
+          </div>
+          <div class="ai-results" id="aiResults">
+            <div class="ai-panel">
+              <h3>⚡ Conflitos Detectados</h3>
+              <div id="conflitosContent"><p class="empty-state">Nenhum conflito detectado ainda.</p></div>
+            </div>
+            <div class="ai-panel">
+              <h3>⏱ Oportunidades de Economia</h3>
+              <div id="oportunidadesContent"><p class="empty-state">Nenhuma oportunidade identificada ainda.</p></div>
+            </div>
+            <div class="ai-panel">
+              <h3>📢 Apoio de Marketing</h3>
+              <div id="marketingContent"><p class="empty-state">Nenhuma solicitação de marketing.</p></div>
+            </div>
+            <div class="ai-panel">
+              <h3>🏆 Prioridades</h3>
+              <div id="prioridadesContent"><p class="empty-state">Nenhuma prioridade calculada.</p></div>
+            </div>
+            <div class="ai-panel full-width">
+              <h3>📋 Resumo dos Projetos</h3>
+              <div id="resumosContent"><p class="empty-state">Nenhum resumo disponível.</p></div>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
-  </main>
+
+      <div id="page-novo-projeto" class="page">
+        <div class="page-header">
+          <h1>Cadastrar Novo Projeto</h1>
+          <p class="page-subtitle">Preencha os dados do projeto</p>
+        </div>
+
+        <div class="section-block">
+          <form id="projectForm">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="nome">Nome do Projeto *</label>
+                <input type="text" id="nome" required placeholder="Ex: Otimização de Rotas">
+              </div>
+              <div class="form-group">
+                <label for="vertical">Vertical *</label>
+                <select id="vertical" required>
+                  <option value="">Selecione...</option>
+                  <option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
+                  <option value="Viagens">Viagens</option>
+                  <option value="Conecta">Conecta</option>
+                  <option value="Fidelidade">Fidelidade</option>
+                  <option value="Logística">Logística</option>
+                  <option value="TecOps">TecOps</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="responsavel">Responsável *</label>
+                <input type="text" id="responsavel" required placeholder="Ex: João Silva">
+              </div>
+              <div class="form-group">
+                <label for="prazo">Prazo *</label>
+                <input type="date" id="prazo" required>
+              </div>
+              <div class="form-group">
+                <label for="custo">Custo (R$)</label>
+                <input type="number" id="custo" min="0" step="0.01" placeholder="0,00">
+              </div>
+              <div class="form-group">
+                <label for="lucro">Lucro Estimado (R$)</label>
+                <input type="number" id="lucro" min="0" step="0.01" placeholder="0,00">
+              </div>
+              <div class="form-group">
+                <label for="equipe">Tamanho da Equipe</label>
+                <input type="number" id="equipe" min="1" value="1">
+              </div>
+              <div class="form-group full-width">
+                <label for="descricao">Descrição do Projeto *</label>
+                <textarea id="descricao" required placeholder="Descreva o objetivo, escopo e entregas do projeto..."></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn-outline" onclick="navegar('dashboard')">Cancelar</button>
+              <button type="submit" class="btn-primary">Cadastrar Projeto</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="page-equipe-marketing" class="page">
+        <div class="page-header">
+          <h1>Equipe de Marketing</h1>
+          <p class="page-subtitle">Cadastre os membros da equipe de marketing por vertical</p>
+        </div>
+
+        <div class="section-block">
+          <p style="font-size:0.9rem;color:#666;margin-bottom:1rem;">
+            Quando a IA detectar que um projeto precisa de apoio de marketing, os emails cadastrados aqui serão notificados automaticamente.
+          </p>
+          <div class="marketing-form">
+            <div class="form-group">
+              <label for="mktVertical">Vertical</label>
+              <select id="mktVertical">
+                <option value="">Selecione...</option>
+                <option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
+                <option value="Viagens">Viagens</option>
+                <option value="Conecta">Conecta</option>
+                <option value="Fidelidade">Fidelidade</option>
+                <option value="Logística">Logística</option>
+                <option value="TecOps">TecOps</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="mktNome">Nome</label>
+              <input type="text" id="mktNome" placeholder="Ex: Maria Silva">
+            </div>
+            <div class="form-group">
+              <label for="mktEmail">Email</label>
+              <input type="email" id="mktEmail" placeholder="maria@azul.com.br">
+            </div>
+            <div class="form-group" style="align-self:flex-end;">
+              <button class="btn-primary" onclick="addMarketingMember()" style="margin-top:0;">Adicionar</button>
+            </div>
+          </div>
+          <div id="marketingTeamList" style="margin-top:1rem;">
+            <p class="empty-state">Nenhum membro cadastrado.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
 
   <script src="js/ai-agent.js"></script>
   <script src="js/app.js"></script>

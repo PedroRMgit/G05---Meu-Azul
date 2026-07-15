@@ -15,18 +15,21 @@ app.get('/api/projects', (req, res) => {
 });
 
 app.post('/api/projects', (req, res) => {
-  const { nome, setor, descricao, prazo, equipe, precisaMarketing } = req.body;
-  if (!nome || !setor || !descricao || !prazo) {
-    return res.status(400).json({ error: 'Campos obrigatórios: nome, setor, descricao, prazo' });
+  const { nome, vertical, descricao, prazo, equipe, precisaMarketing, custo, lucro, responsavel } = req.body;
+  if (!nome || !vertical || !descricao || !prazo) {
+    return res.status(400).json({ error: 'Campos obrigatórios: nome, vertical, descricao, prazo' });
   }
   const project = {
     id: projectIdCounter++,
     nome,
-    setor,
+    vertical,
     descricao,
     prazo,
     equipe: parseInt(equipe) || 1,
     precisaMarketing: precisaMarketing || false,
+    custo: parseFloat(custo) || 0,
+    lucro: parseFloat(lucro) || 0,
+    responsavel: responsavel || '',
     criadoEm: new Date().toISOString()
   };
   projects.push(project);
@@ -39,6 +42,31 @@ app.delete('/api/projects/:id', (req, res) => {
   if (index === -1) return res.status(404).json({ error: 'Projeto não encontrado' });
   projects.splice(index, 1);
   res.json({ message: 'Projeto removido' });
+});
+
+let marketingTeam = [];
+let memberIdCounter = 1;
+
+app.get('/api/marketing-team', (req, res) => {
+  res.json(marketingTeam);
+});
+
+app.post('/api/marketing-team', (req, res) => {
+  const { nome, email, vertical } = req.body;
+  if (!nome || !email || !vertical) {
+    return res.status(400).json({ error: 'Campos obrigatórios: nome, email, vertical' });
+  }
+  const member = { id: memberIdCounter++, nome, email, vertical };
+  marketingTeam.push(member);
+  res.status(201).json(member);
+});
+
+app.delete('/api/marketing-team/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const index = marketingTeam.findIndex(m => m.id === id);
+  if (index === -1) return res.status(404).json({ error: 'Membro não encontrado' });
+  marketingTeam.splice(index, 1);
+  res.json({ message: 'Membro removido' });
 });
 
 app.get('/api/ai/analysis', (req, res) => {
@@ -60,19 +88,19 @@ function detectarConflitos(projects) {
   for (let i = 0; i < projects.length; i++) {
     for (let j = i + 1; j < projects.length; j++) {
       const a = projects[i], b = projects[j];
-      if (a.prazo === b.prazo && a.setor !== b.setor) {
+      if (a.prazo === b.prazo && a.vertical !== b.vertical) {
         conflitos.push({
           tipo: 'prazo',
           gravidade: 'alta',
-          mensagem: `"${a.nome}" (${a.setor}) e "${b.nome}" (${b.setor}) têm o mesmo prazo: ${a.prazo}`,
+          mensagem: `"${a.nome}" (${a.vertical}) e "${b.nome}" (${b.vertical}) têm o mesmo prazo: ${a.prazo}`,
           projetos: [a.id, b.id]
         });
       }
-      if (a.setor === b.setor && a.prazo === b.prazo) {
+      if (a.vertical === b.vertical && a.prazo === b.prazo) {
         conflitos.push({
           tipo: 'recurso',
           gravidade: 'media',
-          mensagem: `"${a.nome}" e "${b.nome}" são do mesmo setor (${a.setor}) com prazos idênticos. Considere redistribuir recursos.`,
+          mensagem: `"${a.nome}" e "${b.nome}" são da mesma vertical (${a.vertical}) com prazos idênticos. Considere redistribuir recursos.`,
           projetos: [a.id, b.id]
         });
       }
@@ -86,11 +114,11 @@ function identificarOportunidades(projects) {
   for (let i = 0; i < projects.length; i++) {
     for (let j = i + 1; j < projects.length; j++) {
       const a = projects[i], b = projects[j];
-      if (a.setor === b.setor) {
+      if (a.vertical === b.vertical) {
         oportunidades.push({
-          tipo: 'uniao_setor',
+          tipo: 'uniao_vertical',
           economia: `${Math.ceil((a.equipe + b.equipe) * 0.3)} horas/semana`,
-          mensagem: `"${a.nome}" e "${b.nome}" são do mesmo setor (${a.setor}). Unir reuniões pode economizar ${Math.ceil((a.equipe + b.equipe) * 0.3)}h/semana.`,
+          mensagem: `"${a.nome}" e "${b.nome}" são da mesma vertical (${a.vertical}). Unir reuniões pode economizar ${Math.ceil((a.equipe + b.equipe) * 0.3)}h/semana.`,
           projetos: [a.id, b.id]
         });
       }
@@ -116,8 +144,8 @@ function identificarMarketingRequests(projects) {
     .map(p => ({
       projetoId: p.id,
       projetoNome: p.nome,
-      setor: p.setor,
-      mensagem: `O projeto "${p.nome}" do setor ${p.setor} solicitou apoio de marketing.`
+      vertical: p.vertical,
+      mensagem: `O projeto "${p.nome}" da vertical ${p.vertical} solicitou apoio de marketing.`
     }));
 }
 
@@ -128,7 +156,8 @@ function avaliarPrioridades(projects) {
     const diasRestantes = Math.ceil((prazoDate - hoje) / (1000 * 60 * 60 * 24));
     let urgencia = diasRestantes <= 7 ? 5 : diasRestantes <= 30 ? 3 : 1;
     let impacto = p.equipe >= 5 ? 5 : p.equipe >= 3 ? 3 : 1;
-    let prioridade = Math.min(10, urgencia + impacto + (p.precisaMarketing ? 2 : 0));
+    let rentabilidade = p.lucro - p.custo > 0 ? 2 : p.lucro - p.custo > -5000 ? 0 : -1;
+    let prioridade = Math.min(10, Math.max(1, urgencia + impacto + (p.precisaMarketing ? 2 : 0) + rentabilidade));
     let nivel = prioridade >= 8 ? 'Crítica' : prioridade >= 5 ? 'Alta' : prioridade >= 3 ? 'Média' : 'Baixa';
     return {
       id: p.id,
@@ -150,10 +179,13 @@ function gerarResumos(projects) {
     return {
       id: p.id,
       nome: p.nome,
-      resumo: `${p.nome} é um projeto do setor ${p.setor} com equipe de ${p.equipe} pessoa(s). Prazo: ${p.prazo} (${statusPrazo}). ${p.precisaMarketing ? 'Solicita apoio de marketing.' : 'Não requer marketing no momento.'} Descrição: ${p.descricao.substring(0, 100)}${p.descricao.length > 100 ? '...' : ''}`,
+      resumo: `${p.nome} é um projeto da vertical ${p.vertical} com equipe de ${p.equipe} pessoa(s). Prazo: ${p.prazo} (${statusPrazo}). Responsável: ${p.responsavel || 'não definido'}. Custo: R$ ${p.custo.toFixed(2)} | Lucro: R$ ${p.lucro.toFixed(2)}. ${p.precisaMarketing ? 'Solicita apoio de marketing.' : 'Não requer marketing no momento.'} Descrição: ${p.descricao.substring(0, 100)}${p.descricao.length > 100 ? '...' : ''}`,
       statusPrazo,
-      setor: p.setor,
-      equipe: p.equipe
+      vertical: p.vertical,
+      equipe: p.equipe,
+      custo: p.custo,
+      lucro: p.lucro,
+      responsavel: p.responsavel
     };
   });
 }
