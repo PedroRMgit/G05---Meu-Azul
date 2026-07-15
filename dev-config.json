@@ -3,15 +3,15 @@
     "label": "Verticais",
     "items": [
       {
-        "key": "azul_marca_mae",
-        "value": "Azul (Marca Mae)"
+        "key": "azul",
+        "value": "Azul"
       },
       {
-        "key": "viagens",
+        "key": "Viagens",
         "value": "Viagens"
       },
       {
-        "key": "conecta",
+        "key": "Conecta",
         "value": "Conecta"
       },
       {
@@ -20,7 +20,7 @@
       },
       {
         "key": "logistica",
-        "value": "Logística"
+        "value": "Logistica"
       },
       {
         "key": "tecops",
@@ -33,23 +33,15 @@
     "items": [
       {
         "key": "nav_dashboard",
-        "value": "Dashboard",
-        "oldValue": "Dashboard"
+        "value": "Dashboard"
       },
       {
         "key": "nav_novo_projeto",
-        "value": "Novo Projeto",
-        "oldValue": "Novo Projeto"
+        "value": "Novo Projeto"
       },
       {
         "key": "nav_equipe_marketing",
-        "value": "Equipe Marketing",
-        "oldValue": "Equipe Marketing"
-      },
-      {
-        "key": "nav_devtools",
-        "value": "Editar",
-        "oldValue": "Editar"
+        "value": "Equipe Marketing"
       }
     ]
   },
@@ -133,24 +125,24 @@
     "label": "Títulos dos Painéis de IA",
     "items": [
       {
-        "key": "panel_prioridade",
-        "value": "Prioridade - Ranking Completo"
-      },
-      {
         "key": "panel_conflitos",
-        "value": "Conflitos Detectados"
+        "value": "⚡ Conflitos Detectados"
       },
       {
         "key": "panel_oportunidades",
-        "value": "Oportunidades de Economia"
+        "value": "⏱ Oportunidades de Economia"
       },
       {
         "key": "panel_marketing",
-        "value": "Apoio de Marketing"
+        "value": "📢 Apoio de Marketing"
       },
       {
-        "key": "panel_resumos",
-        "value": "Resumo dos Projetos"
+        "key": "panel_prioridade",
+        "value": "🏆 Prioridade - Ranking Completo"
+      },
+      {
+        "key": "panel_resumo",
+        "value": "📋 Resumo dos Projetos"
       }
     ]
   },
@@ -164,18 +156,6 @@
       {
         "key": "btn_cadastrar",
         "value": "Cadastrar Projeto"
-      },
-      {
-        "key": "btn_cancelar",
-        "value": "Cancelar"
-      },
-      {
-        "key": "btn_adicionar_mkt",
-        "value": "Adicionar"
-      },
-      {
-        "key": "btn_remover",
-        "value": "Remover"
       }
     ]
   }

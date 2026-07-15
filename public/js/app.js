@@ -433,7 +433,11 @@ function renderAnalysis(analysis) {
 let editModeActive = false;
 
 const EDITABLE_SELECTORS = [
-  { cat: 'nav_labels', sel: '#appNav .nav-item .nav-label', key: el => el.closest('.nav-item')?.dataset?.page },
+  { cat: 'nav_labels', sel: '#appNav .nav-item .nav-label', key: el => {
+    const page = el.closest('.nav-item')?.dataset?.page;
+    const map = { dashboard:'nav_dashboard', 'novo-projeto':'nav_novo_projeto', 'equipe-marketing':'nav_equipe_marketing', editar:'nav_devtools' };
+    return map[page] || page;
+  }},
   { cat: 'ai_panels', sel: '.ai-panel h3', key: el => {
     const texts = ['Prioridade', 'Conflitos', 'Oportunidades', 'Marketing', 'Resumo'];
     for (const t of texts) { if (el.textContent.includes(t)) return 'panel_' + t.toLowerCase(); }
@@ -839,7 +843,7 @@ async function saveInlineEdits() {
         const snapshotKeys = Object.keys(editModeSnapshot.edits).filter(k => k.startsWith('nav_'));
         const currentKeys = categories.nav_labels.items.map(i => i.key);
         snapshotKeys.forEach(k => {
-          if (!currentKeys.includes(k)) ensureDel('nav_labels') && deleted.nav_labels.push(k);
+          if (!currentKeys.includes(k)) { ensureDel('nav_labels'); deleted.nav_labels.push(k); }
         });
       }
     }
@@ -864,7 +868,7 @@ async function saveInlineEdits() {
           const oldVals = [...editModeSnapshot.verticalHTML.matchAll(/value="([^"]+)"/g)].map(m => m[1]);
           const currentVals = categories.verticals.items.map(i => i.key);
           oldVals.forEach(v => {
-            if (!currentVals.includes(v)) ensureDel('verticals') && deleted.verticals.push(v);
+            if (!currentVals.includes(v)) { ensureDel('verticals'); deleted.verticals.push(v); }
           });
         }
       }
