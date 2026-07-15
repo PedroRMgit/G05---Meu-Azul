@@ -4,33 +4,27 @@
     "items": [
       {
         "key": "azul_marca_mae",
-        "value": "Azul (Marca Mae)",
-        "oldValue": "Azul (Marca Mae)"
+        "value": "Azul (Marca Mae)"
       },
       {
         "key": "viagens",
-        "value": "Viagens",
-        "oldValue": "Viagens"
+        "value": "Viagens"
       },
       {
         "key": "conecta",
-        "value": "Conecta",
-        "oldValue": "Conecta"
+        "value": "Conecta"
       },
       {
         "key": "fidelidade",
-        "value": "Fidelidade",
-        "oldValue": "Fidelidade"
+        "value": "Fidelidade"
       },
       {
         "key": "logistica",
-        "value": "Logística",
-        "oldValue": "Logística"
+        "value": "Logística"
       },
       {
         "key": "tecops",
-        "value": "TecOps",
-        "oldValue": "TecOps"
+        "value": "TecOps"
       }
     ]
   },
@@ -39,19 +33,23 @@
     "items": [
       {
         "key": "nav_dashboard",
-        "value": "Dashboard"
+        "value": "Dashboard",
+        "oldValue": "Dashboard"
       },
       {
         "key": "nav_novo_projeto",
-        "value": "Novo Projeto"
+        "value": "Novo Projeto",
+        "oldValue": "Novo Projeto"
       },
       {
         "key": "nav_equipe_marketing",
-        "value": "Equipe Marketing"
+        "value": "Equipe Marketing",
+        "oldValue": "Equipe Marketing"
       },
       {
         "key": "nav_devtools",
-        "value": "Ferramentas Dev"
+        "value": "Editar",
+        "oldValue": "Editar"
       }
     ]
   },

@@ -398,17 +398,35 @@ app.get('/api/dev/config', (req, res) => {
   res.json(config);
 });
 
+function addOptionToSelect(html, selectId, value, text) {
+  const re = new RegExp(`(<select[^>]*id="${selectId}"[^>]*>)([\\s\\S]*?)(<\\/select>)`, 'i');
+  return html.replace(re, (match, open, inner, close) => {
+    const newOpt = `\n<option value="${value}">${text}</option>`;
+    return open + inner + newOpt + '\n' + close;
+  });
+}
+
+function removeOptionFromSelect(html, selectId, value) {
+  const re = new RegExp(`(<select[^>]*id="${selectId}"[^>]*>)([\\s\\S]*?)(<\\/select>)`, 'i');
+  return html.replace(re, (match, open, inner, close) => {
+    const optRe = new RegExp(`<option[^>]*value="${value}"[^>]*>[\\s\\S]*?<\\/option>\\n?`, 'i');
+    return open + inner.replace(optRe, '') + close;
+  });
+}
+
 app.post('/api/dev/save', (req, res) => {
   try {
-    const { categories } = req.body;
+    const { categories, deleted } = req.body;
     if (!categories) return res.status(400).json({ error: 'Dados inválidos' });
     const currentConfig = readConfig();
     if (!currentConfig) return res.status(500).json({ error: 'Config não encontrada' });
 
     const changes = [];
+    const newItemsByCat = {};
+    const allKeyMappings = {};
 
     for (const [catKey, catData] of Object.entries(categories)) {
-      if (!currentConfig[catKey]) continue;
+      if (!currentConfig[catKey]) currentConfig[catKey] = { label: catKey, items: [] };
 
       const newItems = catData.items;
       const oldItems = currentConfig[catKey].items;
@@ -416,8 +434,21 @@ app.post('/api/dev/save', (req, res) => {
       const oldByKey = {};
       oldItems.forEach(item => { oldByKey[item.key] = item; });
 
+      const catKeyMappings = {};
+
       for (let i = 0; i < newItems.length; i++) {
         const newItem = newItems[i];
+        if (newItem.key && newItem.key.startsWith('__new_')) {
+          const properKey = newItem.value.toLowerCase()
+            .replace(/[^a-z0-9áéíóúàâêôãõçü]/g, '_')
+            .replace(/_+/g, '_').replace(/^_|_$/g, '')
+            .substring(0, 30) || `item_${Date.now()}`;
+          catKeyMappings[newItem.key] = { newKey: properKey, value: newItem.value };
+          Object.assign(allKeyMappings, catKeyMappings);
+          newItemsByCat[catKey] = newItemsByCat[catKey] || [];
+          newItemsByCat[catKey].push({ ...newItem, key: properKey });
+          continue;
+        }
         const oldItem = oldByKey[newItem.key];
         if (oldItem) {
           const oldVal = oldItem.value;
@@ -428,14 +459,66 @@ app.post('/api/dev/save', (req, res) => {
         }
       }
 
-      currentConfig[catKey].items = newItems;
+      currentConfig[catKey].items = newItems
+        .filter(i => !i.key.startsWith('__new_'))
+        .map(i => {
+          if (catKeyMappings[i.key]) return { key: catKeyMappings[i.key].newKey, value: i.value };
+          return { key: i.key, value: i.value };
+        });
+
+      for (const [tempKey, mapping] of Object.entries(catKeyMappings)) {
+        currentConfig[catKey].items.push({ key: mapping.newKey, value: mapping.value });
+      }
+    }
+
+    if (deleted) {
+      for (const [catKey, keys] of Object.entries(deleted)) {
+        if (currentConfig[catKey]) {
+          currentConfig[catKey].items = currentConfig[catKey].items.filter(i => !keys.includes(i.key));
+        }
+      }
     }
 
     writeConfig(currentConfig);
 
+    let htmlPath = path.join(__dirname, 'public/index.html');
+    let html = fs.existsSync(htmlPath) ? fs.readFileSync(htmlPath, 'utf-8') : '';
+    const htmlReports = [];
+
+    for (const [catKey, newItems] of Object.entries(newItemsByCat)) {
+      if (catKey === 'verticals') {
+        const keyMapping = {};
+        newItems.forEach(ni => {
+          const properKey = ni.key;
+          html = addOptionToSelect(html, 'vertical', properKey, ni.value);
+          html = addOptionToSelect(html, 'mktVertical', properKey, ni.value);
+          htmlReports.push(`Adicionado "${ni.value}" (${properKey}) aos selects`);
+        });
+      }
+    }
+
+    for (const [tempKey, mapping] of Object.entries(allKeyMappings)) {
+      const re = new RegExp(`value="${tempKey}"`, 'g');
+      html = html.replace(re, `value="${mapping.newKey}"`);
+    }
+
+    if (deleted) {
+      for (const [catKey, keys] of Object.entries(deleted)) {
+        if (catKey === 'verticals') {
+          for (const key of keys) {
+            html = removeOptionFromSelect(html, 'vertical', key);
+            html = removeOptionFromSelect(html, 'mktVertical', key);
+            htmlReports.push(`Removido "${key}" dos selects`);
+          }
+        }
+      }
+    }
+
+    if (htmlReports.length > 0) fs.writeFileSync(htmlPath, html, 'utf-8');
+
     const textReport = patchSourceFiles(changes);
     const orderReport = patchSourceFileOrder(currentConfig);
-    const allReport = [...textReport, ...orderReport];
+    const allReport = [...textReport, ...orderReport, ...htmlReports];
 
     res.json({
       message: `${changes.length} valor(es) alterado(s). ${allReport.length} arquivo(s) atualizado(s).`,

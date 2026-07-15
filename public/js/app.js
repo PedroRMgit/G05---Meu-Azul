@@ -11,7 +11,6 @@ function navegar(page) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   document.getElementById(`page-${page}`).classList.add('active');
   document.querySelector(`[data-page="${page}"]`).classList.add('active');
-  if (page === 'devtools') devToolsLoad();
 }
 
 function switchLoginTab(tab) {
@@ -32,6 +31,7 @@ function loginDev() {
     document.getElementById('mainNav').style.display = 'none';
     document.getElementById('appNav').style.display = 'flex';
     document.getElementById('sidebarProfile').style.display = 'flex';
+    document.getElementById('devToggleArea').style.display = 'flex';
     document.getElementById('devError').style.display = 'none';
     navegar('dashboard');
     loadProjects();
@@ -48,6 +48,7 @@ function logout() {
   document.getElementById('mainNav').style.display = 'flex';
   document.getElementById('appNav').style.display = 'none';
   document.getElementById('sidebarProfile').style.display = 'none';
+  document.getElementById('devToggleArea').style.display = 'none';
   document.getElementById('devKey').value = '';
   switchLoginTab('login');
 }
@@ -427,110 +428,486 @@ function renderAnalysis(analysis) {
   }
 }
 
-function devToolsShowNotification(message, type) {
-  const el = document.getElementById('devToolsNotification');
-  el.textContent = message;
-  el.className = `notification notification-${type}`;
+// ─── Inline Edit Mode ──────────────────────────────────────────────
+
+let editModeActive = false;
+
+const EDITABLE_SELECTORS = [
+  { cat: 'nav_labels', sel: '#appNav .nav-item .nav-label', key: el => el.closest('.nav-item')?.dataset?.page },
+  { cat: 'ai_panels', sel: '.ai-panel h3', key: el => {
+    const texts = ['Prioridade', 'Conflitos', 'Oportunidades', 'Marketing', 'Resumo'];
+    for (const t of texts) { if (el.textContent.includes(t)) return 'panel_' + t.toLowerCase(); }
+    return null;
+  }},
+  { cat: 'btn_labels', sel: '#runAnalysisBtn', key: 'btn_analisar' },
+  { cat: 'btn_labels', sel: '#projectForm .btn-primary', key: 'btn_cadastrar' },
+];
+
+const REORDERABLE_SELECTORS = [
+  { cat: 'nav_labels', container: '#appNav', items: '.nav-item' },
+  { cat: 'verticals', container: '#vertical', items: 'option[value]' },
+  { cat: 'verticals', container: '#mktVertical', items: 'option[value]' },
+];
+
+function showEditNotification(msg, type) {
+  const el = document.getElementById('editModeNotification');
+  if (!el) return;
+  el.textContent = msg;
   el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 6000);
+  el.style.background = type === 'success' ? '#dcfce7' : type === 'error' ? '#fee2e2' : '#e8f0fe';
+  el.style.color = type === 'success' ? '#166534' : type === 'error' ? '#991b1b' : '#003399';
+  el.style.border = `1px solid ${type === 'success' ? '#86efac' : type === 'error' ? '#fecaca' : '#b3d4ff'}`;
+  setTimeout(() => { el.style.display = 'none'; }, 4000);
 }
 
-async function devToolsLoad() {
-  const editor = document.getElementById('devToolsEditor');
-  editor.innerHTML = '<p class="empty-state">Carregando...</p>';
-  try {
-    const res = await fetch(`${API_BASE}/dev/config`);
-    if (!res.ok) throw new Error('Erro ao carregar config');
-    const config = await res.json();
-    editor.innerHTML = Object.entries(config).map(([catKey, cat]) => `
-      <div class="dev-category" style="margin-bottom:1.25rem;">
-        <h3 style="font-size:1rem;color:#003399;margin-bottom:0.5rem;padding-bottom:0.35rem;border-bottom:1px solid #e0e7ff;">${cat.label}</h3>
-        <div class="dev-items" data-category="${catKey}">
-          ${cat.items.map((item, idx) => `
-            <div class="dev-item" data-key="${item.key}" style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.4rem;padding:0.35rem 0.5rem;background:#f8faff;border-radius:6px;">
-              <div class="dev-reorder" style="display:flex;flex-direction:column;gap:1px;">
-                <button class="dev-btn-up" onclick="devToolsMove(this,-1)" style="background:none;border:none;cursor:pointer;font-size:0.6rem;padding:0;line-height:1;color:#666;" title="Mover para cima">▲</button>
-                <button class="dev-btn-down" onclick="devToolsMove(this,1)" style="background:none;border:none;cursor:pointer;font-size:0.6rem;padding:0;line-height:1;color:#666;" title="Mover para baixo">▼</button>
-              </div>
-              <input type="text" class="dev-item-input" value="${item.value.replace(/"/g, '&quot;')}" data-old="${item.value.replace(/"/g, '&quot;')}" style="flex:1;padding:0.35rem 0.5rem;border:1.5px solid #d0d5dd;border-radius:6px;font-size:0.85rem;font-family:inherit;">
-              <span class="dev-item-key" style="font-size:0.7rem;color:#999;font-family:monospace;">${item.key}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `).join('');
-  } catch (err) {
-    editor.innerHTML = `<p style="color:#dc2626;">Erro ao carregar: ${err.message}</p>`;
-  }
-}
+let editModeSnapshot = null;
 
-function devToolsMove(btn, direction) {
-  const item = btn.closest('.dev-item');
-  const container = item.parentElement;
-  const items = [...container.querySelectorAll('.dev-item')];
-  const idx = items.indexOf(item);
-  if (direction === -1 && idx > 0) {
-    container.insertBefore(item, items[idx - 1]);
-  } else if (direction === 1 && idx < items.length - 1) {
-    container.insertBefore(items[idx + 1], item);
-  }
-}
+function takeSnapshot() {
+  const snap = {};
+  const nav = document.getElementById('appNav');
+  if (nav) snap.appNavHTML = nav.innerHTML;
 
-async function devToolsApply() {
-  const applyBtn = document.getElementById('devApplyBtn');
-  applyBtn.disabled = true;
-  applyBtn.textContent = '⏳ Salvando...';
-  try {
-    const categories = {};
-    document.querySelectorAll('.dev-category').forEach(cat => {
-      const catKey = cat.querySelector('.dev-items').dataset.category;
-      const items = [];
-      cat.querySelectorAll('.dev-item').forEach(item => {
-        const key = item.dataset.key;
-        const value = item.querySelector('.dev-item-input').value.trim();
-        const oldValue = item.querySelector('.dev-item-input').dataset.old;
-        items.push({ key, value, oldValue });
-      });
-      categories[catKey] = { items };
+  const vSel = document.getElementById('vertical');
+  const mSel = document.getElementById('mktVertical');
+  if (vSel) snap.verticalHTML = vSel.innerHTML;
+  if (mSel) snap.mktVerticalHTML = mSel.innerHTML;
+
+  const panels = document.querySelectorAll('.ai-results .ai-panel');
+  snap.panelOrder = [...panels].map(p => p.outerHTML);
+
+  const edits = {};
+  for (const cfg of EDITABLE_SELECTORS) {
+    document.querySelectorAll(cfg.sel).forEach(el => {
+      const key = typeof cfg.key === 'function' ? cfg.key(el) : cfg.key;
+      if (key) edits[key] = el.textContent.trim();
     });
+  }
+  snap.edits = edits;
+
+  const sizes = {};
+  document.querySelectorAll(RESIZABLE_SEL).forEach(el => {
+    if (el.id) sizes[el.id] = { w: el.style.width, h: el.style.height };
+  });
+  snap.sizes = sizes;
+
+  return snap;
+}
+
+function restoreSnapshot(snap) {
+  const nav = document.getElementById('appNav');
+  if (nav && snap.appNavHTML) nav.innerHTML = snap.appNavHTML;
+
+  const vSel = document.getElementById('vertical');
+  const mSel = document.getElementById('mktVertical');
+  if (vSel && snap.verticalHTML) vSel.innerHTML = snap.verticalHTML;
+  if (mSel && snap.mktVerticalHTML) mSel.innerHTML = snap.mktVerticalHTML;
+
+  const cont = document.querySelector('.ai-results');
+  if (cont && snap.panelOrder) cont.innerHTML = snap.panelOrder.join('');
+
+  for (const sel of Object.keys(snap.sizes || {})) {
+    const el = document.getElementById(sel);
+    if (el) { el.style.width = snap.sizes[sel].w; el.style.height = snap.sizes[sel].h; }
+  }
+
+  document.querySelectorAll('.editable-select-list').forEach(el => el.remove());
+  document.querySelectorAll('.resize-handle').forEach(el => el.remove());
+  document.querySelectorAll('[style*="width"]').forEach(el => {
+    if (el.classList.contains('ai-panel') || el.classList.contains('section-block') ||
+        el.classList.contains('stat-card') || el.classList.contains('project-card')) {
+      el.style.width = ''; el.style.height = '';
+    }
+  });
+}
+
+function toggleEditMode() {
+  editModeActive = !editModeActive;
+  const bar = document.getElementById('editModeBar');
+  const btn = document.getElementById('editModeBtn');
+  const toggle = document.getElementById('editModeToggle');
+  if (editModeActive) {
+    bar.style.display = 'flex';
+    if (btn) btn.classList.add('active');
+    if (toggle) toggle.checked = true;
+    enableInlineEditing();
+  } else {
+    bar.style.display = 'none';
+    if (btn) btn.classList.remove('active');
+    if (toggle) toggle.checked = false;
+    disableInlineEditing();
+  }
+}
+
+function cancelEditMode() {
+  if (editModeSnapshot) restoreSnapshot(editModeSnapshot);
+  editModeActive = true;
+  disableInlineEditing();
+  editModeActive = false;
+  editModeSnapshot = null;
+  const bar = document.getElementById('editModeBar');
+  const btn = document.getElementById('editModeBtn');
+  const toggle = document.getElementById('editModeToggle');
+  bar.style.display = 'none';
+  if (btn) btn.classList.remove('active');
+  if (toggle) toggle.checked = false;
+}
+
+function enableInlineEditing() {
+  editModeSnapshot = takeSnapshot();
+
+  document.querySelectorAll('.nav-item').forEach(ni => ni.style.cursor = 'grab');
+
+  for (const cfg of EDITABLE_SELECTORS) {
+    document.querySelectorAll(cfg.sel).forEach(el => {
+      el.contentEditable = 'true';
+      el.classList.add('editable-highlight');
+      el.dataset.devCat = cfg.cat;
+      el.dataset.devKey = typeof cfg.key === 'function' ? cfg.key(el) : cfg.key;
+      el.dataset.devOld = el.textContent.trim();
+    });
+  }
+
+  for (const cfg of REORDERABLE_SELECTORS) {
+    const container = document.querySelector(cfg.container);
+    if (!container) continue;
+    container.classList.add('reorderable-container');
+    if (container.tagName === 'SELECT') replaceSelectWithEditableList(container, cfg.cat);
+  }
+
+  enableBoxResizing();
+  enableBoxRepositioning();
+
+  document.addEventListener('keydown', editKeyHandler);
+}
+
+function disableInlineEditing() {
+  document.querySelectorAll('.nav-item').forEach(ni => ni.style.cursor = '');
+
+  for (const cfg of EDITABLE_SELECTORS) {
+    document.querySelectorAll(cfg.sel).forEach(el => {
+      el.contentEditable = 'false';
+      el.classList.remove('editable-highlight');
+      delete el.dataset.devCat;
+      delete el.dataset.devKey;
+      delete el.dataset.devOld;
+    });
+  }
+
+  for (const cfg of REORDERABLE_SELECTORS) {
+    const container = document.querySelector(cfg.container);
+    if (!container) continue;
+    container.classList.remove('reorderable-container');
+    if (container.dataset.editableList) {
+      const list = document.querySelector(`.editable-select-list[data-for-select="${container.id}"]`);
+      if (list) {
+        list.querySelectorAll('.editable-option').forEach(el => {
+          const input = el.querySelector('.editable-option-input');
+          const opt = container.querySelector(`option[value="${el.dataset.value}"]`);
+          if (opt && input) opt.textContent = input.value;
+        });
+      }
+      delete container.dataset.editableList;
+    }
+  }
+
+  document.querySelectorAll('.editable-select-list').forEach(el => {
+    const sel = document.getElementById(el.dataset.forSelect);
+    if (sel) sel.style.display = '';
+    el.remove();
+  });
+
+  disableBoxResizing();
+  disableBoxRepositioning();
+
+  document.removeEventListener('keydown', editKeyHandler);
+}
+
+function editKeyHandler(e) {
+  if (e.key === 'Escape') cancelEditMode();
+}
+
+let newItemCounter = 0;
+
+function replaceSelectWithEditableList(select, cat) {
+  const list = document.createElement('div');
+  list.className = 'editable-select-list';
+  list.dataset.forSelect = select.id;
+  select.dataset.editableList = 'true';
+  const items = [];
+  [...select.querySelectorAll('option')].forEach(opt => {
+    if (!opt.value) return;
+    items.push({ value: opt.value, text: opt.textContent });
+  });
+  list.innerHTML = items.map((item, idx) => `
+    <div class="editable-option" draggable="true" data-cat="${cat}" data-value="${item.value.replace(/"/g, '&quot;')}">
+      <span class="drag-handle">⠿</span>
+      <input type="text" class="editable-option-input" value="${item.text.replace(/"/g, '&quot;')}" data-old="${item.text.replace(/"/g, '&quot;')}">
+      <span class="option-value-tag">${item.value}</span>
+      <button class="dev-del-btn" onclick="deleteEditableOption(this)" title="Remover">✕</button>
+    </div>
+  `).join('');
+  list.innerHTML += `<button class="dev-add-btn" onclick="addEditableOption(this, '${cat}')">+ Adicionar</button>`;
+  select.parentNode.insertBefore(list, select.nextSibling);
+  select.style.display = 'none';
+
+  list.querySelectorAll('.editable-option').forEach(el => {
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', '');
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend', () => el.classList.remove('dragging'));
+    el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag-over'); });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      const dragged = list.querySelector('.dragging');
+      if (dragged && dragged !== el) {
+        if ([...list.querySelectorAll('.editable-option')].indexOf(dragged) < [...list.querySelectorAll('.editable-option')].indexOf(el))
+          list.insertBefore(dragged, el.nextSibling);
+        else list.insertBefore(dragged, el);
+      }
+    });
+  });
+}
+
+function deleteEditableOption(btn) {
+  const opt = btn.closest('.editable-option');
+  if (opt) opt.remove();
+}
+
+function addEditableOption(btn, cat) {
+  const list = btn.parentElement;
+  const newKey = `__new_${newItemCounter++}`;
+  const div = document.createElement('div');
+  div.className = 'editable-option';
+  div.draggable = true;
+  div.dataset.cat = cat;
+  div.dataset.value = newKey;
+  div.innerHTML = `
+    <span class="drag-handle">⠿</span>
+    <input type="text" class="editable-option-input" value="Novo Item" data-old="">
+    <span class="option-value-tag">${newKey}</span>
+    <button class="dev-del-btn" onclick="deleteEditableOption(this)" title="Remover">✕</button>
+  `;
+  list.insertBefore(div, btn);
+  div.querySelector('input').focus();
+  div.querySelector('input').select();
+
+  div.addEventListener('dragstart', e => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+    div.classList.add('dragging');
+  });
+  div.addEventListener('dragend', () => div.classList.remove('dragging'));
+  div.addEventListener('dragover', e => { e.preventDefault(); div.classList.add('drag-over'); });
+  div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+  div.addEventListener('drop', e => {
+    e.preventDefault();
+    div.classList.remove('drag-over');
+    const dragged = list.querySelector('.dragging');
+    if (dragged && dragged !== div) {
+      if ([...list.querySelectorAll('.editable-option')].indexOf(dragged) < [...list.querySelectorAll('.editable-option')].indexOf(div))
+        list.insertBefore(dragged, div.nextSibling);
+      else list.insertBefore(dragged, div);
+    }
+  });
+}
+
+// ─── Box Resizing ──────────────────────────────
+
+const RESIZABLE_SEL = '.ai-panel, .section-block, .stat-card, .project-card';
+let resizeObserver = null;
+
+function enableBoxResizing() {
+  document.querySelectorAll(RESIZABLE_SEL).forEach(el => {
+    el.classList.add('dev-resizable');
+    const handle = document.createElement('div');
+    handle.className = 'resize-handle';
+    handle.innerHTML = '↘';
+    el.appendChild(handle);
+
+    let startX, startY, startW, startH;
+    const onMouseDown = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      startX = e.clientX; startY = e.clientY;
+      startW = el.offsetWidth; startH = el.offsetHeight;
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    };
+    const onMouseMove = (e) => {
+      const w = Math.max(120, startW + (e.clientX - startX));
+      const h = Math.max(60, startH + (e.clientY - startY));
+      el.style.width = w + 'px';
+      el.style.height = h + 'px';
+      el.dataset.devWidth = w;
+      el.dataset.devHeight = h;
+    };
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    handle.addEventListener('mousedown', onMouseDown);
+  });
+}
+
+function disableBoxResizing() {
+  document.querySelectorAll(RESIZABLE_SEL).forEach(el => {
+    el.classList.remove('dev-resizable');
+    const handle = el.querySelector('.resize-handle');
+    if (handle) handle.remove();
+  });
+}
+
+// ─── Box Repositioning ──────────────────────────
+
+const REPOSITIONABLE_CONT = '.ai-results';
+
+function enableBoxRepositioning() {
+  const cont = document.querySelector(REPOSITIONABLE_CONT);
+  if (!cont) return;
+
+  cont.querySelectorAll('.ai-panel').forEach(el => {
+    el.draggable = true;
+    el.classList.add('dev-draggable');
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', el.dataset.devOrigIdx || '');
+      el.classList.add('dragging-panel');
+    });
+    el.addEventListener('dragend', () => el.classList.remove('dragging-panel'));
+    el.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      const dragged = cont.querySelector('.dragging-panel');
+      if (dragged && dragged !== el) {
+        const items = [...cont.querySelectorAll('.ai-panel')];
+        const fromIdx = items.indexOf(dragged);
+        const toIdx = items.indexOf(el);
+        if (fromIdx < toIdx) cont.insertBefore(dragged, el.nextSibling);
+        else cont.insertBefore(dragged, el);
+      }
+    });
+  });
+}
+
+function disableBoxRepositioning() {
+  const cont = document.querySelector(REPOSITIONABLE_CONT);
+  if (!cont) return;
+  cont.querySelectorAll('.ai-panel').forEach(el => {
+    el.draggable = false;
+    el.classList.remove('dev-draggable');
+  });
+}
+
+async function saveInlineEdits() {
+  const categories = {};
+  const deleted = {};
+
+  function ensureCat(cat) { if (!categories[cat]) categories[cat] = { items: [] }; }
+  function ensureDel(cat) { if (!deleted[cat]) deleted[cat] = []; }
+
+  for (const cfg of EDITABLE_SELECTORS) {
+    document.querySelectorAll(cfg.sel).forEach(el => {
+      if (!el.dataset.devCat || !el.dataset.devKey) return;
+      const cat = el.dataset.devCat;
+      const key = el.dataset.devKey;
+      const value = el.textContent.trim();
+      const oldValue = el.dataset.devOld || value;
+      ensureCat(cat);
+      categories[cat].items.push({ key, value, oldValue });
+    });
+  }
+
+  for (const cfg of REORDERABLE_SELECTORS) {
+    if (cfg.cat === 'nav_labels') {
+      const container = document.querySelector(cfg.container);
+      if (!container) continue;
+      ensureCat('nav_labels');
+      container.querySelectorAll(cfg.items).forEach(el => {
+        const label = el.querySelector('.nav-label');
+        if (!label) return;
+        const key = label.dataset.devKey || el.dataset.page;
+        const value = label.textContent.trim();
+        const oldValue = label.dataset.devOld || value;
+        if (key && !categories.nav_labels.items.find(i => i.key === key)) {
+          categories.nav_labels.items.push({ key, value, oldValue });
+        }
+      });
+      if (editModeSnapshot && editModeSnapshot.edits) {
+        const snapshotKeys = Object.keys(editModeSnapshot.edits).filter(k => k.startsWith('nav_'));
+        const currentKeys = categories.nav_labels.items.map(i => i.key);
+        snapshotKeys.forEach(k => {
+          if (!currentKeys.includes(k)) ensureDel('nav_labels') && deleted.nav_labels.push(k);
+        });
+      }
+    }
+    if (cfg.cat === 'verticals' && cfg.container.includes('#')) {
+      const select = document.querySelector(cfg.container);
+      if (!select || select.style.display !== 'none') continue;
+      const list = document.querySelector(`.editable-select-list[data-for-select="${select.id}"]`);
+      if (!list) continue;
+      ensureCat('verticals');
+      list.querySelectorAll('.editable-option').forEach(el => {
+        const input = el.querySelector('.editable-option-input');
+        const key = el.dataset.value;
+        const value = input ? input.value.trim() : '';
+        const oldValue = input ? (input.dataset.old || value) : value;
+        if (key && !categories.verticals.items.find(i => i.key === key)) {
+          categories.verticals.items.push({ key, value, oldValue });
+        }
+      });
+      if (editModeSnapshot) {
+        const vSel = document.getElementById('vertical');
+        if (vSel) {
+          const oldVals = [...editModeSnapshot.verticalHTML.matchAll(/value="([^"]+)"/g)].map(m => m[1]);
+          const currentVals = categories.verticals.items.map(i => i.key);
+          oldVals.forEach(v => {
+            if (!currentVals.includes(v)) ensureDel('verticals') && deleted.verticals.push(v);
+          });
+        }
+      }
+    }
+  }
+
+  for (const catKey of Object.keys(categories)) {
+    categories[catKey].items = categories[catKey].items.filter(i => i.key);
+  }
+
+  if (Object.keys(categories).length === 0 && Object.keys(deleted).length === 0) {
+    showEditNotification('Nada foi alterado.', 'info');
+    toggleEditMode();
+    return;
+  }
+
+  try {
+    const body = { categories };
+    if (Object.keys(deleted).length > 0) body.deleted = deleted;
     const res = await fetch(`${API_BASE}/dev/save`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ categories })
+      body: JSON.stringify(body)
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Erro ao salvar');
-    devToolsShowNotification(result.message || 'Alterações salvas com sucesso!', 'info');
-    await devToolsLoad();
+    showEditNotification('✅ ' + result.message, 'success');
+    toggleEditMode();
+    setTimeout(() => location.reload(), 1500);
   } catch (err) {
-    devToolsShowNotification('Erro: ' + err.message, 'warning');
-  } finally {
-    applyBtn.disabled = false;
-    applyBtn.textContent = '💾 Aplicar';
+    showEditNotification('❌ Erro: ' + err.message, 'error');
   }
 }
 
-async function devToolsGitStatus() {
-  const output = document.getElementById('devGitOutput');
-  output.textContent = 'Carregando status...';
-  try {
-    const res = await fetch(`${API_BASE}/dev/git/status`);
-    const result = await res.json();
-    output.textContent = result.output || 'Sem resposta';
-  } catch (err) {
-    output.textContent = 'Erro: ' + err.message;
-  }
-}
-
-async function devToolsGitPush() {
-  const output = document.getElementById('devGitOutput');
-  output.textContent = 'Executando push...';
+async function devPushNow() {
+  showEditNotification('⏳ Executando push...', 'info');
   try {
     const res = await fetch(`${API_BASE}/dev/git/push`, { method: 'POST' });
     const result = await res.json();
-    output.textContent = result.output || 'Push realizado com sucesso!';
+    if (!res.ok) throw new Error(result.error || 'Erro no push');
+    showEditNotification('✅ Push realizado: ' + (result.output || '').substring(0, 200), 'success');
   } catch (err) {
-    output.textContent = 'Erro: ' + err.message;
+    showEditNotification('❌ Erro no push: ' + err.message, 'error');
   }
 }
 

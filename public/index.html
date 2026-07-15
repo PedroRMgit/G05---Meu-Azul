@@ -40,11 +40,14 @@
           <span class="nav-icon">👥</span>
           <span class="nav-label">Equipe Marketing</span>
         </button>
-<button class="nav-item" data-page="devtools" onclick="navegar('devtools')">
-          <span class="nav-icon">🔧</span>
-          <span class="nav-label">Ferramentas Dev</span>
-        </button>
 </nav>
+      <div class="sidebar-dev-toggle" id="devToggleArea" style="display:none;padding:0.5rem 1.25rem;border-top:1px solid rgba(255,255,255,0.1);">
+        <label class="toggle-switch" title="Ativar/desativar modo de edição">
+          <span class="toggle-label">🔧 Editar</span>
+          <input type="checkbox" id="editModeToggle" onchange="toggleEditMode()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
       <div class="sidebar-profile" id="sidebarProfile" style="display:none;">
         <div class="profile-avatar">👤</div>
         <div class="profile-info">
@@ -181,6 +184,7 @@
 <option value="Conecta">Conecta</option>
 <option value="Conecta">Conecta</option>
 <option value="">Selecione...</option>
+<option value="nova_teste">Nova Teste</option>
 </select>
               </div>
               <div class="form-group">
@@ -245,6 +249,7 @@
 <option value="Conecta">Conecta</option>
 <option value="Conecta">Conecta</option>
 <option value="">Selecione...</option>
+<option value="nova_teste">Nova Teste</option>
 </select>
             </div>
             <div class="form-group">
@@ -264,37 +269,14 @@
           </div>
         </div>
       </div>
-      <div id="page-devtools" class="page">
-        <div class="page-header">
-          <h1>🔧 Ferramentas de Desenvolvimento</h1>
-          <p class="page-subtitle">Edite nomes, labels e posições. As alterações persistem no código-fonte.</p>
-        </div>
-
-        <div id="devToolsNotification" class="notification" style="display:none;"></div>
-
-        <div class="section-block">
-          <div class="section-header">
-            <h2>Itens Configuráveis</h2>
-            <div style="display:flex;gap:0.5rem;">
-              <button id="devRefreshBtn" class="btn-outline" onclick="devToolsLoad()">🔄 Recarregar</button>
-              <button id="devApplyBtn" class="btn-primary" onclick="devToolsApply()">💾 Aplicar</button>
-            </div>
-          </div>
-          <p style="font-size:0.85rem;color:#666;margin-bottom:1rem;">
-            Altere os valores abaixo e clique em <strong>"Aplicar"</strong> para salvar no código-fonte e enviar ao Git.
-          </p>
-          <div id="devToolsEditor"><p class="empty-state">Carregando...</p></div>
-        </div>
-
-        <div class="section-block">
-          <h2>Ações do Git</h2>
-          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-            <button class="btn-secondary" onclick="devToolsGitStatus()">📋 Ver Status</button>
-            <button class="btn-primary" onclick="devToolsGitPush()">🚀 Push</button>
-          </div>
-          <pre id="devGitOutput" style="background:#1a1a2e;color:#e0e0e0;padding:1rem;border-radius:8px;margin-top:0.75rem;font-size:0.82rem;overflow-x:auto;min-height:40px;white-space:pre-wrap;"></pre>
-        </div>
+      <div id="editModeBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#003399;color:white;padding:0.5rem 1rem;display:none;align-items:center;gap:0.75rem;box-shadow:0 2px 12px rgba(0,0,0,0.3);">
+        <span style="font-weight:700;font-size:0.9rem;">🔧 MODO EDIÇÃO</span>
+        <span style="font-size:0.78rem;opacity:0.8;flex:1;">Clique nos textos para editar • Arraste itens para reordenar</span>
+        <button class="btn-outline" style="background:rgba(255,255,255,0.15);color:white;border-color:rgba(255,255,255,0.3);padding:0.35rem 1rem;font-size:0.82rem;" onclick="cancelEditMode()">❌ Cancelar</button>
+        <button class="btn-primary" style="background:#22c55e;color:white;border:none;padding:0.35rem 1rem;font-size:0.82rem;" onclick="saveInlineEdits()">💾 Aplicar</button>
+        <button class="btn-primary" style="background:#f59e0b;color:white;border:none;padding:0.35rem 1rem;font-size:0.82rem;" onclick="devPushNow()">🚀 Push</button>
       </div>
+      <div id="editModeNotification" style="display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:9999;padding:0.5rem 1rem;border-radius:8px;font-size:0.85rem;font-weight:500;box-shadow:0 2px 8px rgba(0,0,0,0.15);"></div>
 
       </main>
   </div>
