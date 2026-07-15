@@ -30,6 +30,7 @@ function loginDev() {
     isAuthenticated = true;
     document.getElementById('mainNav').style.display = 'none';
     document.getElementById('appNav').style.display = 'flex';
+    document.getElementById('sidebarProfile').style.display = 'flex';
     document.getElementById('devError').style.display = 'none';
     navegar('dashboard');
     loadProjects();
