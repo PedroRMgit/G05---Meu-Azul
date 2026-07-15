@@ -40,6 +40,15 @@ function loginDev() {
   }
 }
 
+function logout() {
+  isAuthenticated = false;
+  document.getElementById('mainNav').style.display = 'flex';
+  document.getElementById('appNav').style.display = 'none';
+  document.getElementById('sidebarProfile').style.display = 'none';
+  document.getElementById('devKey').value = '';
+  switchLoginTab('login');
+}
+
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T23:59:59');
   return d.toLocaleDateString('pt-BR');
