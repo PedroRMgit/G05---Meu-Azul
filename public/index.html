@@ -190,7 +190,7 @@
           <div class="kpi-card">
             <div class="kpi-icon green">📈</div>
             <div class="kpi-body">
-              <div class="kpi-label">Lucro Total</div>
+              <div class="kpi-label">Faturamento Total</div>
               <div class="kpi-value" id="totalLucro">R$ 0</div>
             </div>
             <div class="kpi-glow green"></div>
@@ -278,7 +278,7 @@
             <option value="nome">Ordenar: Nome</option>
             <option value="prazo">Ordenar: Prazo</option>
             <option value="custo">Ordenar: Custo</option>
-            <option value="lucro">Ordenar: Lucro</option>
+            <option value="lucro">Ordenar: Faturamento</option>
           </select>
           <span class="toolbar-info" id="projectCountInfo">0 projetos</span>
         </div>
@@ -355,7 +355,6 @@
 <option value="Fidelidade">Fidelidade</option>
 <option value="Logistica">Logistica</option>
 <option value="TecOps">TecOps</option>
-<option value="Azul (Marca Mae)">Azul (Marca Mae)</option>
 <option value="azul">Azul</option>
 </select>
               </div>
@@ -372,7 +371,7 @@
                 <input type="number" id="custo" min="0" step="0.01" placeholder="0,00">
               </div>
               <div class="form-group">
-                <label for="lucro">Lucro Estimado (R$)</label>
+                <label for="lucro">Faturamento Estimado (R$)</label>
                 <input type="number" id="lucro" min="0" step="0.01" placeholder="0,00">
               </div>
               <div class="form-group">
@@ -394,6 +393,7 @@
             </div>
             <div class="form-actions">
               <button type="button" class="btn btn-outline" onclick="navegar(defaultPage())">Cancelar</button>
+              <button type="button" class="btn btn-secondary" onclick="fillExampleData()">🎲 Preencher Dados de Exemplo</button>
               <button type="submit" class="btn btn-primary">Cadastrar Projeto</button>
             </div>
           </form>
@@ -462,7 +462,7 @@
             <input type="number" id="editCusto" min="0" step="0.01">
           </div>
           <div class="form-group">
-            <label for="editLucro">Lucro (R$)</label>
+            <label for="editLucro">Faturamento (R$)</label>
             <input type="number" id="editLucro" min="0" step="0.01">
           </div>
           <div class="form-group">

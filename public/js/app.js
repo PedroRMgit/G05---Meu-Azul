@@ -494,7 +494,7 @@ function renderProjects() {
             <span class="value money">${p.custo ? formatMoney(p.custo) : '-'}</span>
           </div>
           <div class="info-item">
-            <span class="label">Lucro</span>
+            <span class="label">Faturamento</span>
             <span class="value money ${isProfit ? 'positive' : 'negative'}">${p.lucro ? formatMoney(p.lucro) : '-'}</span>
           </div>
           <div class="info-item">
@@ -522,7 +522,6 @@ function renderProjects() {
             ${p.custo > 0 ? '<span class="tag tag-info">💰 ' + formatMoney(p.custo) + '</span>' : ''}
           </div>
           <div class="project-card-actions">
-            ${currentUser && (currentUser.role === 'gerente-marketing' || currentUser.role === 'desenvolvedor') ? `<button class="btn btn-ghost btn-xs" onclick="contactProject(${p.id})" title="Contactar equipe">Contactar</button>` : ''}
             ${currentUser && (currentUser.role === 'gerente-marketing' || currentUser.role === 'desenvolvedor') ? `<button class="btn btn-ghost btn-xs" onclick="analyzeProject(${p.id})" title="Analisar projeto">Analisar</button>` : ''}
           </div>
         </div>
@@ -610,7 +609,7 @@ function renderEditProjectsList() {
           <span class="tag ${urgente ? 'tag-warning' : ''}">Prazo: ${formatDate(p.prazo)}</span>
           <span class="tag">Equipe: ${p.equipe}</span>
           ${p.custo > 0 ? `<span class="tag tag-info">Custo: ${formatMoney(p.custo)}</span>` : ''}
-          ${p.lucro > 0 ? `<span class="tag tag-success">Lucro: ${formatMoney(p.lucro)}</span>` : ''}
+          ${p.lucro > 0 ? `<span class="tag tag-success">Faturamento: ${formatMoney(p.lucro)}</span>` : ''}
         </div>
       </div>`;
   }).join('');
@@ -834,21 +833,6 @@ function renderVerticalChart() {
 }
 
 /* ─── Marketing Manager Actions ─── */
-function contactProject(id) {
-  const p = projects.find(x => x.id === id);
-  if (!p) return;
-  const team = marketingTeam.filter(m => m.vertical === p.vertical);
-  if (team.length > 0) {
-    const emails = team.map(m => `${m.nome} <${m.email}>`).join('\n');
-    showToast(`📧 Contactar equipe de ${p.vertical}:\n${emails}`, 'info', 6000);
-  } else {
-    const msg = p.responsavel
-      ? `Responsável: ${p.responsavel} (sem equipe de marketing cadastrada para ${p.vertical})`
-      : `Nenhum contato disponível para "${p.nome}". Cadastre a equipe de marketing primeiro.`;
-    showToast(`📧 ${msg}`, 'warning', 5000);
-  }
-}
-
 function analyzeProject(id) {
   const p = projects.find(x => x.id === id);
   if (!p) return;
@@ -863,6 +847,60 @@ function analyzeProject(id) {
   msg += `Inovação: ${criteria.cInnovation}/5\n`;
   msg += precisaMkt ? '⚠️ Requer apoio de marketing' : '✅ Não requer marketing no momento';
   showToast(msg, total >= 18 ? 'warning' : 'info', 8000);
+}
+
+/* ─── Preencher Dados de Exemplo ─── */
+function fillExampleData() {
+  const nomes = [
+    'Modernização do Check-in Digital',
+    'Campanha Azul Fidelidade Premium',
+    'Integração com Parceiros',
+    'Aplicativo de Embarque Inteligente',
+    'Sistema de Gestão de Bagagens',
+    'Expansão Azul Viagens',
+    'Plataforma de Autoatendimento',
+    'Otimização de Rotas Domésticas',
+    'Programa de Milhas Aceleradas',
+    'Hub de Conexões Nordeste',
+    'App Trip Crew',
+    'Chatbot de Atendimento Azul',
+    'Monitoramento de Frota em Tempo Real',
+    'Análise de Satisfação do Passageiro',
+    'Sistema de Precificação Dinâmica'
+  ];
+  const verticais = ['Viagens', 'Conecta', 'Fidelidade', 'Logistica', 'TecOps', 'azul'];
+  const responsaveis = ['Ana Beatriz', 'Carlos Eduardo', 'Fernanda Lima', 'Gabriel Santos', 'Juliana Costa', 'Lucas Oliveira', 'Mariana Silva', 'Rafael Almeida', 'Tatiane Souza', 'Vinícius Rocha'];
+  const descricoes = [
+    'Modernizar o sistema de check-in nos aeroportos com totens de autoatendimento, suporte a biometria facial e integração com o app mobile. Inclui upgrade de hardware e software nos 45 aeroportos onde a Azul opera.',
+    'Lançar campanha de marketing para o programa Azul Fidelidade com foco no plano premium. Ações em redes sociais, email marketing, eventos exclusivos e parcerias com hotéis e locadoras para ampliar o engajamento dos clientes.',
+    'Desenvolver integração com parceiros estratégicos para venda de passagens, pacotes de viagem e serviços adicionais via API. O projeto inclui documentação técnica, sandbox para testes e dashboard de monitoramento.',
+    'Criar um novo aplicativo de embarque com experiência fluida, cartão de embarque digital com QR code dinâmico, notificações em tempo real sobre portão de embarque e alterações de voo, e suporte a múltiplos idiomas.',
+    'Implementar sistema de rastreamento de bagagens com RFID, permitindo que o passageiro acompanhe a localização da bagagem em tempo real pelo app. Inclui integração com esteiras, sensores e equipe de rampa.',
+    'Expandir a vertical Azul Viagens com novos pacotes nacionais e internacionais, plataforma de reservas melhorada, integração com hoteis e seguros, e campanha de divulgação para o público corporativo.',
+    'Criar plataforma de autoatendimento para passageiros com funcionalidades de reembolso, remarcação, escolha de assento, compra de franquia de bagagem e check-in antecipado, tudo via web e mobile.',
+    'Analisar e otimizar as rotas domésticas utilizando machine learning para prever demanda, ajustar frequências e maximizar a ocupação. Inclui dashboard de visualização de dados e recomendação de ajustes.',
+    'Lançar programa de aceleração de milhas com parcerias estratégicas, permitindo que clientes acumulem milhas mais rápido em compras do dia a dia através de um app dedicado e campanhas segmentadas.',
+    'Transformar o Aeroporto de Recife em um hub de conexões para o Nordeste, com ajustes de malha aérea, campanha de marketing regional e parceria com governos estaduais para incentivo ao turismo.',
+    'Desenvolver aplicativo exclusivo para a tripulação da Azul com funcionalidades de check-in de voo, consulta de escala, comunicação com supervisores, documentos de bordo digitalizados e notificações importantes.',
+    'Implementar chatbot com inteligência artificial para atendimento ao cliente no WhatsApp e site, capaz de resolver dúvidas frequentes, realizar vendas de passagens e auxiliar em remarcações de forma automatizada.',
+    'Sistema de monitoramento em tempo real de toda a frota da Azul com sensores IoT, análise preditiva de manutenção e dashboard integrado para a equipe de operações. Redução esperada de 20% em manutenções corretivas.',
+    'Pesquisa contínua de satisfação dos passageiros com coleta automatizada após cada voo, análise de sentimentos com NLP e geração de relatórios semanais para a diretoria com insights acionáveis.',
+    'Sistema de precificação dinâmica de passagens utilizando machine learning para ajustar tarifas em tempo real com base em demanda, sazonalidade, concorrência e histórico de compras dos clientes.'
+  ];
+
+  const idx = Math.floor(Math.random() * nomes.length);
+  document.getElementById('nome').value = nomes[idx];
+  document.getElementById('vertical').value = verticais[Math.floor(Math.random() * verticais.length)];
+  document.getElementById('responsavel').value = responsaveis[Math.floor(Math.random() * responsaveis.length)];
+  const prazo = new Date();
+  prazo.setDate(prazo.getDate() + Math.floor(Math.random() * 180) + 15);
+  document.getElementById('prazo').value = prazo.toISOString().split('T')[0];
+  document.getElementById('custo').value = (Math.floor(Math.random() * 90) + 10) * 1000;
+  document.getElementById('lucro').value = (Math.floor(Math.random() * 150) + 20) * 1000;
+  document.getElementById('equipe').value = Math.floor(Math.random() * 8) + 2;
+  document.getElementById('descricao').value = descricoes[Math.floor(Math.random() * descricoes.length)];
+  updateAICriteriaPreview();
+  showToast('🎲 Formulário preenchido com dados de exemplo!', 'success', 2000);
 }
 
 /* ─── AI Analysis ─── */
@@ -1116,7 +1154,7 @@ function renderAnalysis(analysis) {
           <span class="tag ${r.statusPrazo === 'urgente' ? 'tag-warning' : r.statusPrazo === 'atrasado' ? 'tag-danger' : r.statusPrazo === 'próximo' ? 'tag-info' : 'tag-success'}">${r.statusPrazo}</span>
           <span class="tag">Equipe: ${r.equipe}</span>
           ${r.custo ? `<span class="tag tag-info">Custo: ${formatMoney(r.custo)}</span>` : ''}
-          ${r.lucro ? `<span class="tag tag-success">Lucro: ${formatMoney(r.lucro)}</span>` : ''}
+          ${r.lucro ? `<span class="tag tag-success">Faturamento: ${formatMoney(r.lucro)}</span>` : ''}
         </div>
       </div>
     `).join('');
@@ -1144,7 +1182,7 @@ function openEditModal(id) {
 
   const sel = document.getElementById('editVertical');
   const usedValues = [...new Set(projects.map(x => x.vertical))];
-  const allValues = ['Viagens', 'Conecta', 'Azul (Marca Mae)', 'Fidelidade', 'Logistica', 'TecOps'];
+  const allValues = ['Viagens', 'Conecta', 'Fidelidade', 'Logistica', 'TecOps'];
   const options = [...new Set([...allValues, ...usedValues])];
   sel.innerHTML = options.map(v => `<option value="${v}" ${v === p.vertical ? 'selected' : ''}>${v}</option>`).join('');
 
