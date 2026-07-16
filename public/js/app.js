@@ -53,6 +53,15 @@ function showLoginForm() {
   document.getElementById('registerFormArea').style.display = 'none';
   document.getElementById('testFormArea').style.display = 'none';
   document.getElementById('loginError').style.display = 'none';
+  setTimeout(() => {
+    document.getElementById('loginEmail').focus();
+    document.getElementById('loginEmail').addEventListener('keydown', loginEnterHandler);
+    document.getElementById('loginSenha').addEventListener('keydown', loginEnterHandler);
+  }, 100);
+}
+
+function loginEnterHandler(e) {
+  if (e.key === 'Enter') doLogin();
 }
 
 function showRegisterForm() {
@@ -60,6 +69,16 @@ function showRegisterForm() {
   document.getElementById('registerFormArea').style.display = 'block';
   document.getElementById('testFormArea').style.display = 'none';
   document.getElementById('registerError').style.display = 'none';
+  setTimeout(() => {
+    document.getElementById('registerNome').focus();
+    document.getElementById('registerNome').addEventListener('keydown', registerEnterHandler);
+    document.getElementById('registerEmail').addEventListener('keydown', registerEnterHandler);
+    document.getElementById('registerSenha').addEventListener('keydown', registerEnterHandler);
+  }, 100);
+}
+
+function registerEnterHandler(e) {
+  if (e.key === 'Enter') doRegister();
 }
 
 function showTestForm() {
@@ -67,6 +86,14 @@ function showTestForm() {
   document.getElementById('registerFormArea').style.display = 'none';
   document.getElementById('testFormArea').style.display = 'block';
   document.getElementById('testError').style.display = 'none';
+  setTimeout(() => {
+    document.getElementById('testKey').focus();
+    document.getElementById('testKey').addEventListener('keydown', testEnterHandler);
+  }, 100);
+}
+
+function testEnterHandler(e) {
+  if (e.key === 'Enter') doTest();
 }
 
 async function doLogin() {
