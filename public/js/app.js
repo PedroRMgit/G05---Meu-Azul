@@ -10,27 +10,6 @@ let editingProjectId = null;
 let currentPage = 1;
 const ITEMS_PER_PAGE = 6;
 
-/* ─── Theme ─── */
-function toggleTheme() {
-  const html = document.documentElement;
-  const isDark = html.getAttribute('data-theme') === 'dark';
-  html.setAttribute('data-theme', isDark ? '' : 'dark');
-  localStorage.setItem('meuazul-theme', isDark ? 'light' : 'dark');
-  document.getElementById('themeIcon').textContent = isDark ? '🌙' : '☀️';
-  document.getElementById('themeLabel').textContent = isDark ? 'Modo escuro' : 'Modo claro';
-}
-
-function loadTheme() {
-  const saved = localStorage.getItem('meuazul-theme');
-  if (saved === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    const icon = document.getElementById('themeIcon');
-    const label = document.getElementById('themeLabel');
-    if (icon) icon.textContent = '☀️';
-    if (label) label.textContent = 'Modo claro';
-  }
-}
-
 /* ─── Toast Notifications ─── */
 function showToast(message, type = 'info', duration = 4000) {
   const container = document.getElementById('toastContainer');
@@ -1681,5 +1660,8 @@ async function devPushNow() {
 }
 
 /* ─── Init ─── */
-loadTheme();
+if (localStorage.getItem('meuazul-theme') === 'dark') {
+  document.documentElement.removeAttribute('data-theme');
+  localStorage.setItem('meuazul-theme', 'light');
+}
 showLogin();
