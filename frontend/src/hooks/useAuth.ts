@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { api } from '../lib/api';
 import { authApi } from '../lib/apiMethods';
 import type { User } from '../types';
 
@@ -28,46 +29,36 @@ export const useAuth = create<AuthState>()(
       token: null,
 
       setAuth: (token, user) => {
-        import('../lib/api').then(({ api }) => {
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        });
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         set({ token, user });
       },
 
       login: async (email, password) => {
         const response = await authApi.login(email, password);
         const { access_token } = response.data;
+        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
         const userResponse = await authApi.me();
-        import('../lib/api').then(({ api }) => {
-          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-        });
         set({ token: access_token, user: userResponse.data });
       },
 
       register: async (data) => {
         const response = await authApi.register(data);
         const { access_token } = response.data;
+        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
         const userResponse = await authApi.me();
-        import('../lib/api').then(({ api }) => {
-          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-        });
         set({ token: access_token, user: userResponse.data });
       },
 
       loginTest: async (accessKey, role) => {
         const response = await authApi.testLogin(accessKey, role);
         const { access_token } = response.data;
+        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
         const userResponse = await authApi.me();
-        import('../lib/api').then(({ api }) => {
-          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-        });
         set({ token: access_token, user: userResponse.data });
       },
 
       logout: () => {
-        import('../lib/api').then(({ api }) => {
-          delete api.defaults.headers.common['Authorization'];
-        });
+        delete api.defaults.headers.common['Authorization'];
         set({ user: null, token: null });
       },
     }),
@@ -76,9 +67,7 @@ export const useAuth = create<AuthState>()(
       partialize: (state) => ({ token: state.token, user: state.user }),
       onRehydrateStorage: () => (state) => {
         if (state?.token) {
-          import('../lib/api').then(({ api }) => {
-            api.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
-          });
+          api.defaults.headers.common['Authorization'] = `Bearer ${state.token}`;
         }
       },
     }
