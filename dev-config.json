@@ -3,7 +3,7 @@
     "label": "Verticais",
     "items": [
       {
-        "key": "azul",
+        "key": "Azul",
         "value": "Azul"
       },
       {
@@ -32,20 +32,20 @@
     "label": "Labels da Navegação (sidebar)",
     "items": [
       {
-        "key": "nav_dashboard",
+        "key": "label_1",
         "value": "Dashboard"
       },
       {
-        "key": "nav_projetos",
-        "value": "Projetos"
+        "key": "label_2",
+        "value": "Marketing"
       },
       {
-        "key": "nav_cadastrar",
+        "key": "label_3",
         "value": "Cadastrar"
       },
       {
-        "key": "nav_editar",
-        "value": "Editar Projetos"
+        "key": "label_4",
+        "value": "Editar"
       }
     ]
   },

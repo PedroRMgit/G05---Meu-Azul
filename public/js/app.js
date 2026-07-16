@@ -1361,11 +1361,12 @@ function disableInlineEditing() {
     if (container.dataset.editableList) {
       const list = document.querySelector(`.editable-select-list[data-for-select="${container.id}"]`);
       if (list) {
-        list.querySelectorAll('.editable-option').forEach(el => {
+        const optionsHtml = [...list.querySelectorAll('.editable-option')].map(el => {
           const input = el.querySelector('.editable-option-input');
-          const opt = container.querySelector(`option[value="${el.dataset.value}"]`);
-          if (opt && input) opt.textContent = input.value;
-        });
+          const val = input ? input.value.trim() : '';
+          return val ? `<option value="${val}">${val}</option>` : '';
+        }).join('');
+        container.innerHTML = optionsHtml;
       }
       delete container.dataset.editableList;
     }
@@ -1658,6 +1659,31 @@ async function saveInlineEdits() {
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Erro ao salvar');
     const totalChanges = (result.changes ? result.changes.length : 0) + (directChanges.length);
+
+    if (categories.verticals) {
+      const vertMap = {};
+      const vertItems = categories.verticals.items;
+      vertItems.forEach(item => { vertMap[item.key] = item.value; });
+      projects.forEach(p => {
+        if (vertMap[p.vertical] && vertMap[p.vertical] !== p.vertical) {
+          p.vertical = vertMap[p.vertical];
+        }
+      });
+      const newOptions = vertItems.map(item =>
+        `<option value="${item.value}">${item.value}</option>`
+      ).join('');
+      ['#vertical', '#mktVertical', '#editVertical'].forEach(selId => {
+        const sel = document.querySelector(selId);
+        if (!sel) return;
+        sel.innerHTML = newOptions;
+      });
+      renderProjects();
+      updateDashboardStats();
+      renderVerticalChart();
+      renderEditProjectsList();
+      agent.setProjects(projects);
+    }
+
     showEditNotification('✅ ' + totalChanges + ' alteração(ões) salva(s).', 'success');
     toggleEditMode();
   } catch (err) {
