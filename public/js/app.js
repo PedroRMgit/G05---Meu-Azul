@@ -401,10 +401,11 @@ async function deleteProject(id) {
     await fetch(`${API_BASE}/projects/${id}`, { method: 'DELETE' });
     projects = projects.filter(p => p.id !== id);
     renderProjects();
+    renderEditProjectsList();
     updateDashboardStats();
     renderVerticalChart();
     agent.setProjects(projects);
-    showToast('🗑️ Projeto removido com sucesso.', 'info');
+    showToast('Projeto removido com sucesso.', 'info');
   } catch (err) {
     alert('Erro ao remover projeto');
   }
@@ -521,10 +522,8 @@ function renderProjects() {
             ${p.custo > 0 ? '<span class="tag tag-info">💰 ' + formatMoney(p.custo) + '</span>' : ''}
           </div>
           <div class="project-card-actions">
-            ${currentUser && (currentUser.role === 'desenvolvedor' || currentUser.role === 'analista') ? `<button class="btn btn-ghost btn-xs" onclick="openEditModal(${p.id})" title="Editar">✏️</button>` : ''}
-            ${currentUser && (currentUser.role === 'desenvolvedor' || currentUser.role === 'analista') ? `<button class="btn btn-ghost btn-xs" onclick="deleteProject(${p.id})" style="color:var(--danger)" title="Remover">🗑️</button>` : ''}
-            ${currentUser && (currentUser.role === 'gerente-marketing' || currentUser.role === 'desenvolvedor') ? `<button class="btn btn-ghost btn-xs" onclick="contactProject(${p.id})" title="Contactar equipe">📞</button>` : ''}
-            ${currentUser && (currentUser.role === 'gerente-marketing' || currentUser.role === 'desenvolvedor') ? `<button class="btn btn-ghost btn-xs" onclick="analyzeProject(${p.id})" title="Analisar projeto">📊</button>` : ''}
+            ${currentUser && (currentUser.role === 'gerente-marketing' || currentUser.role === 'desenvolvedor') ? `<button class="btn btn-ghost btn-xs" onclick="contactProject(${p.id})" title="Contactar equipe">Contactar</button>` : ''}
+            ${currentUser && (currentUser.role === 'gerente-marketing' || currentUser.role === 'desenvolvedor') ? `<button class="btn btn-ghost btn-xs" onclick="analyzeProject(${p.id})" title="Analisar projeto">Analisar</button>` : ''}
           </div>
         </div>
       </div>`;
