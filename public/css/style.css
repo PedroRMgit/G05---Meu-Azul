@@ -59,7 +59,7 @@
   --radius-xl: 24px;
 
   --sidebar-width: 240px;
-  --sidebar-bg: linear-gradient(180deg, #001144 0%, #002266 100%);
+  --sidebar-bg: #003c9c;
   --sidebar-nav-bg: #003c9c;
   --navbar-height: 0px;
 
@@ -85,7 +85,7 @@
   --shadow: 0 2px 8px rgba(0,0,0,0.4);
   --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
   --shadow-xl: 0 12px 48px rgba(0,0,0,0.6);
-  --sidebar-bg: linear-gradient(180deg, #050d1a 0%, #0a1628 100%);
+  --sidebar-bg: #0f2440;
   --sidebar-nav-bg: #0f2440;
   --gray-50: #1e293b;
   --success-bg: #052e16;

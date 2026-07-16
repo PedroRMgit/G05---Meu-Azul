@@ -226,7 +226,7 @@ function enterApp() {
     navItems.push({ page: 'dashboard', icon: '📊', label: 'Dashboard' });
   }
   if (role === 'gerente-marketing' || role === 'desenvolvedor') {
-    navItems.push({ page: 'projetos', icon: '📋', label: 'Projetos' });
+    navItems.push({ page: 'projetos', icon: '📢', label: 'Marketing' });
   }
   if (role === 'analista' || role === 'desenvolvedor') {
     navItems.push({ page: 'cadastrar-projeto', icon: '➕', label: 'Cadastrar' });
@@ -521,8 +521,10 @@ function renderProjects() {
             ${p.custo > 0 ? '<span class="tag tag-info">💰 ' + formatMoney(p.custo) + '</span>' : ''}
           </div>
           <div class="project-card-actions">
-            ${currentUser && (currentUser.role === 'desenvolvedor' || currentUser.role === 'analista') ? `<button class="btn btn-ghost btn-xs" onclick="openEditModal(${p.id})">✏️</button>` : ''}
-            ${currentUser && (currentUser.role === 'desenvolvedor' || currentUser.role === 'analista') ? `<button class="btn btn-ghost btn-xs" onclick="deleteProject(${p.id})" style="color:var(--danger)">🗑️</button>` : ''}
+            ${currentUser && (currentUser.role === 'desenvolvedor' || currentUser.role === 'analista') ? `<button class="btn btn-ghost btn-xs" onclick="openEditModal(${p.id})" title="Editar">✏️</button>` : ''}
+            ${currentUser && (currentUser.role === 'desenvolvedor' || currentUser.role === 'analista') ? `<button class="btn btn-ghost btn-xs" onclick="deleteProject(${p.id})" style="color:var(--danger)" title="Remover">🗑️</button>` : ''}
+            ${currentUser && (currentUser.role === 'gerente-marketing' || currentUser.role === 'desenvolvedor') ? `<button class="btn btn-ghost btn-xs" onclick="contactProject(${p.id})" title="Contactar equipe">📞</button>` : ''}
+            ${currentUser && (currentUser.role === 'gerente-marketing' || currentUser.role === 'desenvolvedor') ? `<button class="btn btn-ghost btn-xs" onclick="analyzeProject(${p.id})" title="Analisar projeto">📊</button>` : ''}
           </div>
         </div>
       </div>`;
@@ -832,6 +834,38 @@ function renderVerticalChart() {
   });
 }
 
+/* ─── Marketing Manager Actions ─── */
+function contactProject(id) {
+  const p = projects.find(x => x.id === id);
+  if (!p) return;
+  const team = marketingTeam.filter(m => m.vertical === p.vertical);
+  if (team.length > 0) {
+    const emails = team.map(m => `${m.nome} <${m.email}>`).join('\n');
+    showToast(`📧 Contactar equipe de ${p.vertical}:\n${emails}`, 'info', 6000);
+  } else {
+    const msg = p.responsavel
+      ? `Responsável: ${p.responsavel} (sem equipe de marketing cadastrada para ${p.vertical})`
+      : `Nenhum contato disponível para "${p.nome}". Cadastre a equipe de marketing primeiro.`;
+    showToast(`📧 ${msg}`, 'warning', 5000);
+  }
+}
+
+function analyzeProject(id) {
+  const p = projects.find(x => x.id === id);
+  if (!p) return;
+  const projectForAI = { nome: p.nome, descricao: p.descricao || '' };
+  const criteria = agent.avaliarCriteriosMarketing(projectForAI);
+  const total = criteria.cViability + criteria.cImpact + criteria.cAreas + criteria.cAlignment + criteria.cInnovation;
+  const precisaMkt = agent.detectarNecessidadeMarketing(projectForAI);
+  let msg = `📊 Análise de "${p.nome}":\n`;
+  msg += `Critérios de Marketing: ${total}/25\n`;
+  msg += `Viabilidade: ${criteria.cViability}/5 | Impacto: ${criteria.cImpact}/5\n`;
+  msg += `Áreas: ${criteria.cAreas}/5 | Estratégia: ${criteria.cAlignment}/5\n`;
+  msg += `Inovação: ${criteria.cInnovation}/5\n`;
+  msg += precisaMkt ? '⚠️ Requer apoio de marketing' : '✅ Não requer marketing no momento';
+  showToast(msg, total >= 18 ? 'warning' : 'info', 8000);
+}
+
 /* ─── AI Analysis ─── */
 function runAIAnalysis() {
   if (projects.length === 0) {
@@ -863,7 +897,6 @@ function renderAIDashboardCards(analysis) {
   }
 
   const conflitos = analysis.conflitos || [];
-  const oportunidades = analysis.oportunidades || [];
   const marketingReqs = analysis.marketingRequests || [];
   const prioridades = analysis.prioridades || [];
   const topP = prioridades.filter(p => p.score >= 5).length;
@@ -879,16 +912,6 @@ function renderAIDashboardCards(analysis) {
           </div>
         </div>
         <p style="font-size:0.8rem;color:var(--text-secondary);">${conflitos.length === 0 ? 'Nenhum conflito entre projetos.' : conflitos.map(c => c.mensagem).join('<br>')}</p>
-      </div>
-      <div class="ai-card">
-        <div class="ai-card-header">
-          <div class="ai-card-icon green">💰</div>
-          <div>
-            <div class="ai-card-title">Oportunidades</div>
-            <div class="ai-card-count">${oportunidades.length} encontrada(s)</div>
-          </div>
-        </div>
-        <p style="font-size:0.8rem;color:var(--text-secondary);">${oportunidades.length === 0 ? 'Nenhuma oportunidade identificada.' : oportunidades.map(o => o.mensagem).join('<br>')}</p>
       </div>
       <div class="ai-card">
         <div class="ai-card-header">
@@ -1063,17 +1086,6 @@ function renderAnalysis(analysis) {
     `).join('');
   }
 
-  const oportunidadesEl = document.getElementById('oportunidadesContent');
-  if (analysis.oportunidades.length === 0) {
-    oportunidadesEl.innerHTML = '<p class="empty-state">Nenhuma oportunidade identificada.</p>';
-  } else {
-    oportunidadesEl.innerHTML = analysis.oportunidades.map(o => `
-      <div class="ai-item">
-        <strong>💰 ${o.economia}</strong> - ${o.mensagem}
-      </div>
-    `).join('');
-  }
-
   const marketingEl = document.getElementById('marketingContent');
   if (analysis.marketingRequests.length === 0) {
     marketingEl.innerHTML = '<p class="empty-state">Nenhuma solicitação de marketing.</p>';
@@ -1182,21 +1194,34 @@ async function saveEditProject() {
 
 /* ─── Dev Edit Mode ─── */
 let editModeActive = false;
+let editableElementCounter = 0;
 
-const EDITABLE_SELECTORS = [
-  { cat: 'nav_labels', sel: '#appNav .nav-item .nav-label', key: el => {
-    const page = el.closest('.nav-item')?.dataset?.page;
-    const map = { dashboard:'nav_dashboard', projetos:'nav_projetos', 'cadastrar-projeto':'nav_cadastrar', 'editar-projetos':'nav_editar' };
-    return map[page] || page;
-  }},
-  { cat: 'ai_panels', sel: '.ai-panel h3', key: el => {
-    const texts = ['Prioridade', 'Conflitos', 'Oportunidades', 'Marketing', 'Resumo'];
-    for (const t of texts) { if (el.textContent.includes(t)) return 'panel_' + t.toLowerCase(); }
-    return null;
-  }},
-  { cat: 'btn_labels', sel: '#runAnalysisBtn', key: 'btn_analisar' },
-  { cat: 'btn_labels', sel: '#projectForm .btn-primary', key: 'btn_cadastrar' },
-];
+function makeElementEditable(el) {
+  if (!el || el.contentEditable === 'true') return;
+  const skip = ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'SCRIPT', 'STYLE', 'CANVAS', 'IMG', 'VIDEO', 'BR', 'HR', 'A'];
+  if (skip.includes(el.tagName)) return;
+  const text = el.textContent.trim();
+  if (!text) return;
+  if (el.closest('.editable-select-list') || el.closest('.resize-handle') || el.closest('[data-dev-cat]')) return;
+  el.contentEditable = 'true';
+  el.classList.add('editable-highlight');
+  el.dataset.devCat = 'labels';
+  el.dataset.devKey = 'label_' + (editableElementCounter++);
+  el.dataset.devOld = text;
+}
+
+function collectAllEditableElements() {
+  editableElementCounter = 0;
+  const targets = document.querySelectorAll(
+    '.page.active h1, .page.active h2, .page.active h3, .page.active h4, ' +
+    '.page.active h5, .page.active p, .page.active span, ' +
+    '.page.active .page-subtitle, .page.active .kpi-label, .page.active .kpi-value, ' +
+    '.page.active .section-badge, .page.active .btn, .page.active label, ' +
+    '.page.active .nav-label, .page.active .ai-card-title, .page.active .ai-card-count, ' +
+    '.page.active .ai-panel h3, .sidebar-nav .nav-label'
+  );
+  targets.forEach(makeElementEditable);
+}
 
 const REORDERABLE_SELECTORS = [
   { cat: 'nav_labels', container: '#appNav', items: '.nav-item' },
@@ -1231,12 +1256,10 @@ function takeSnapshot() {
   snap.panelOrder = [...panels].map(p => p.outerHTML);
 
   const edits = {};
-  for (const cfg of EDITABLE_SELECTORS) {
-    document.querySelectorAll(cfg.sel).forEach(el => {
-      const key = typeof cfg.key === 'function' ? cfg.key(el) : cfg.key;
-      if (key) edits[key] = el.textContent.trim();
-    });
-  }
+  document.querySelectorAll('[data-dev-cat]').forEach(el => {
+    const key = el.dataset.devKey;
+    if (key) edits[key] = el.textContent.trim();
+  });
   snap.edits = edits;
 
   const sizes = {};
@@ -1303,19 +1326,10 @@ function cancelEditMode() {
 }
 
 function enableInlineEditing() {
-  editModeSnapshot = takeSnapshot();
-
   document.querySelectorAll('.nav-item').forEach(ni => ni.style.cursor = 'grab');
 
-  for (const cfg of EDITABLE_SELECTORS) {
-    document.querySelectorAll(cfg.sel).forEach(el => {
-      el.contentEditable = 'true';
-      el.classList.add('editable-highlight');
-      el.dataset.devCat = cfg.cat;
-      el.dataset.devKey = typeof cfg.key === 'function' ? cfg.key(el) : cfg.key;
-      el.dataset.devOld = el.textContent.trim();
-    });
-  }
+  collectAllEditableElements();
+  editModeSnapshot = takeSnapshot();
 
   for (const cfg of REORDERABLE_SELECTORS) {
     const container = document.querySelector(cfg.container);
@@ -1333,15 +1347,13 @@ function enableInlineEditing() {
 function disableInlineEditing() {
   document.querySelectorAll('.nav-item').forEach(ni => ni.style.cursor = '');
 
-  for (const cfg of EDITABLE_SELECTORS) {
-    document.querySelectorAll(cfg.sel).forEach(el => {
-      el.contentEditable = 'false';
-      el.classList.remove('editable-highlight');
-      delete el.dataset.devCat;
-      delete el.dataset.devKey;
-      delete el.dataset.devOld;
-    });
-  }
+  document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+    el.contentEditable = 'false';
+    el.classList.remove('editable-highlight');
+    delete el.dataset.devCat;
+    delete el.dataset.devKey;
+    delete el.dataset.devOld;
+  });
 
   for (const cfg of REORDERABLE_SELECTORS) {
     const container = document.querySelector(cfg.container);
@@ -1552,21 +1564,26 @@ function disableBoxRepositioning() {
 async function saveInlineEdits() {
   const categories = {};
   const deleted = {};
+  const directChanges = [];
 
   function ensureCat(cat) { if (!categories[cat]) categories[cat] = { items: [] }; }
   function ensureDel(cat) { if (!deleted[cat]) deleted[cat] = []; }
 
-  for (const cfg of EDITABLE_SELECTORS) {
-    document.querySelectorAll(cfg.sel).forEach(el => {
-      if (!el.dataset.devCat || !el.dataset.devKey) return;
-      const cat = el.dataset.devCat;
-      const key = el.dataset.devKey;
-      const value = el.textContent.trim();
-      const oldValue = el.dataset.devOld || value;
+  document.querySelectorAll('[data-dev-cat]').forEach(el => {
+    const cat = el.dataset.devCat;
+    const key = el.dataset.devKey;
+    const value = el.textContent.trim();
+    const oldValue = el.dataset.devOld || value;
+    if (!cat || !key) return;
+    if (cat === 'labels') {
+      if (oldValue !== value) {
+        directChanges.push({ oldValue, newValue: value });
+      }
+    } else {
       ensureCat(cat);
       categories[cat].items.push({ key, value, oldValue });
-    });
-  }
+    }
+  });
 
   for (const cfg of REORDERABLE_SELECTORS) {
     if (cfg.cat === 'nav_labels') {
@@ -1623,15 +1640,17 @@ async function saveInlineEdits() {
     categories[catKey].items = categories[catKey].items.filter(i => i.key);
   }
 
-  if (Object.keys(categories).length === 0 && Object.keys(deleted).length === 0) {
+  if (Object.keys(categories).length === 0 && Object.keys(deleted).length === 0 && directChanges.length === 0) {
     showEditNotification('Nada foi alterado.', 'info');
     toggleEditMode();
     return;
   }
 
   try {
-    const body = { categories };
+    const body = {};
+    if (Object.keys(categories).length > 0) body.categories = categories;
     if (Object.keys(deleted).length > 0) body.deleted = deleted;
+    if (directChanges.length > 0) body.changes = directChanges;
     const res = await fetch(`${API_BASE}/dev/save`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1639,9 +1658,9 @@ async function saveInlineEdits() {
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Erro ao salvar');
-    showEditNotification('✅ ' + result.message, 'success');
+    const totalChanges = (result.changes ? result.changes.length : 0) + (directChanges.length);
+    showEditNotification('✅ ' + totalChanges + ' alteração(ões) salva(s).', 'success');
     toggleEditMode();
-    setTimeout(() => location.reload(), 1500);
   } catch (err) {
     showEditNotification('❌ Erro: ' + err.message, 'error');
   }

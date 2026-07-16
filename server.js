@@ -155,7 +155,7 @@ app.get('/api/ai/analysis', (req, res) => {
 
 function runAIAnalysis(projects) {
   const conflitos = detectarConflitos(projects);
-  const oportunidades = identificarOportunidades(projects);
+  const oportunidades = [];
   const marketingRequests = identificarMarketingRequests(projects);
   const marketingRanking = rankProjetosMarketing(projects);
   const prioridades = avaliarPrioridades(projects);
@@ -208,35 +208,6 @@ function detectarConflitos(projects) {
     }
   }
   return conflitos;
-}
-
-function identificarOportunidades(projects) {
-  const oportunidades = [];
-  for (let i = 0; i < projects.length; i++) {
-    for (let j = i + 1; j < projects.length; j++) {
-      const a = projects[i], b = projects[j];
-      if (a.vertical === b.vertical) {
-        oportunidades.push({
-          tipo: 'uniao_vertical',
-          economia: `${Math.ceil((a.equipe + b.equipe) * 0.3)} horas/semana`,
-          mensagem: `"${a.nome}" e "${b.nome}" são da mesma vertical (${a.vertical}). Unir reuniões pode economizar ${Math.ceil((a.equipe + b.equipe) * 0.3)}h/semana.`,
-          projetos: [a.id, b.id]
-        });
-      }
-      const descA = a.descricao.toLowerCase(), descB = b.descricao.toLowerCase();
-      const palavrasA = descA.split(' '), palavrasB = descB.split(' ');
-      const comuns = palavrasA.filter(p => palavrasB.includes(p) && p.length > 4);
-      if (comuns.length >= 2) {
-        oportunidades.push({
-          tipo: 'sinergia',
-          economia: `${Math.ceil((a.equipe + b.equipe) * 0.2)} horas/semana`,
-          mensagem: `"${a.nome}" e "${b.nome}" compartilham temas similares (${comuns.slice(0, 3).join(', ')}). Considere colaboração.`,
-          projetos: [a.id, b.id]
-        });
-      }
-    }
-  }
-  return oportunidades;
 }
 
 function identificarMarketingRequests(projects) {
@@ -488,15 +459,16 @@ function removeOptionFromSelect(html, selectId, value) {
 
 app.post('/api/dev/save', (req, res) => {
   try {
-    const { categories, deleted } = req.body;
-    if (!categories) return res.status(400).json({ error: 'Dados inválidos' });
+    const { categories, deleted, changes: directChanges } = req.body;
+    if (!categories && !directChanges) return res.status(400).json({ error: 'Dados inválidos' });
     const currentConfig = readConfig();
     if (!currentConfig) return res.status(500).json({ error: 'Config não encontrada' });
 
-    const changes = [];
+    const changes = directChanges ? directChanges.filter(c => c.oldValue && c.newValue && c.oldValue !== c.newValue) : [];
     const newItemsByCat = {};
     const allKeyMappings = {};
 
+    if (categories) {
     for (const [catKey, catData] of Object.entries(categories)) {
       if (!currentConfig[catKey]) currentConfig[catKey] = { label: catKey, items: [] };
 
@@ -549,6 +521,7 @@ app.post('/api/dev/save', (req, res) => {
           currentConfig[catKey].items = currentConfig[catKey].items.filter(i => !keys.includes(i.key));
         }
       }
+    }
     }
 
     writeConfig(currentConfig);

@@ -66,33 +66,8 @@ class AIAgent {
   }
 
   identificarOportunidades() {
-    const oportunidades = [];
-    for (let i = 0; i < this.projects.length; i++) {
-      for (let j = i + 1; j < this.projects.length; j++) {
-        const a = this.projects[i], b = this.projects[j];
-        if (a.vertical === b.vertical) {
-          oportunidades.push({
-            tipo: 'uniao_vertical',
-            economia: `${Math.ceil((a.equipe + b.equipe) * 0.3)} horas/semana`,
-            mensagem: `"${a.nome}" e "${b.nome}" são da mesma vertical (${a.vertical}). Unir reuniões pode economizar ${Math.ceil((a.equipe + b.equipe) * 0.3)}h/semana.`,
-            projetos: [a.id, b.id]
-          });
-        }
-      const descA = a.descricao.toLowerCase(), descB = b.descricao.toLowerCase();
-      const palavrasA = descA.split(/\s+/), palavrasB = descB.split(/\s+/);
-      const comuns = palavrasA.filter(p => palavrasB.includes(p) && p.length > 4);
-      if (comuns.length >= 2) {
-        oportunidades.push({
-          tipo: 'sinergia',
-          economia: `${Math.ceil((a.equipe + b.equipe) * 0.2)} horas/semana`,
-          mensagem: `"${a.nome}" e "${b.nome}" compartilham temas similares (${comuns.slice(0, 3).join(', ')}). Considere colaboração.`,
-          projetos: [a.id, b.id]
-        });
-      }
-    }
+    return [];
   }
-  return oportunidades;
-}
 
   identificarMarketingRequests() {
     return this.projects
