@@ -38,6 +38,7 @@ function showLogin() {
   document.getElementById('sidebarProfile').style.display = 'none';
   document.getElementById('devToggleArea').style.display = 'none';
   document.getElementById('navSectionTitle').style.display = 'none';
+  document.getElementById('notificationBell').style.display = 'none';
   document.getElementById('page-login').classList.add('active');
   document.getElementById('loginStepRole').style.display = 'block';
   document.getElementById('loginStepAuth').style.display = 'none';
@@ -217,6 +218,7 @@ function enterApp() {
   document.getElementById('profileName').textContent = currentUser.nome;
   document.getElementById('profileRole').textContent = roleNames[role] || role;
   document.getElementById('devToggleArea').style.display = role === 'desenvolvedor' ? 'flex' : 'none';
+  document.getElementById('notificationBell').style.display = 'block';
 
   const nav = document.getElementById('appNav');
   nav.style.display = 'flex';
@@ -249,6 +251,7 @@ function enterApp() {
   }
   loadProjects();
   loadMarketingTeam();
+  loadNotifications();
 }
 
 function logout() {
@@ -262,6 +265,7 @@ function logout() {
   document.getElementById('sidebarFooter').style.display = 'none';
   document.getElementById('sidebarProfile').style.display = 'none';
   document.getElementById('navSectionTitle').style.display = 'none';
+  document.getElementById('notificationBell').style.display = 'none';
   document.getElementById('loginStepRole').style.display = 'block';
   document.getElementById('loginStepAuth').style.display = 'none';
   document.getElementById('loginFormArea').style.display = 'none';
@@ -283,7 +287,8 @@ function defaultPage() {
 function navegar(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-  document.getElementById(`page-${page}`).classList.add('active');
+  const pg = document.getElementById(`page-${page}`);
+  if (pg) pg.classList.add('active');
   const btn = document.querySelector(`[data-page="${page}"]`);
   if (btn) btn.classList.add('active');
   if (page === 'editar-projetos') renderEditProjectsList();
@@ -292,18 +297,23 @@ function navegar(page) {
     renderProjects();
     renderVerticalChart();
   }
+  if (page === 'detalhes') {
+    if (typeof detailProjectId !== 'undefined' && detailProjectId) {
+      renderDetailPage(detailProjectId);
+    }
+  }
+  document.getElementById('notifPanel').style.display = 'none';
 }
 
-function formatDate(dateStr) {
-  const d = new Date(dateStr + 'T23:59:59');
-  return d.toLocaleDateString('pt-BR');
-}
+/* ─── Status Helpers ─── */
+const STATUS_MAP = {
+  em_andamento: { label: 'Em andamento', icon: '🟢', class: 'badge-info' },
+  planejamento: { label: 'Planejamento', icon: '🟡', class: 'badge-warning' },
+  concluido: { label: 'Concluído', icon: '🔵', class: 'badge-success' },
+  bloqueado: { label: 'Bloqueado', icon: '🔴', class: 'badge-danger' },
+  cancelado: { label: 'Cancelado', icon: '⚫', class: 'badge-muted' }
+};
 
-function formatMoney(value) {
-  return `R$ ${(value || 0).toFixed(2)}`;
-}
-
-/* ─── Status & Progress Helpers ─── */
 function getStatusInfo(p) {
   const hoje = new Date();
   const prazoDate = new Date(p.prazo + 'T23:59:59');
@@ -321,8 +331,16 @@ function getProgressInfo(p) {
   const total = prazo - criado;
   const passado = hoje - criado;
   if (total <= 0) return 100;
-  const pct = Math.min(100, Math.max(0, Math.round((passado / total) * 100)));
-  return pct;
+  return Math.min(100, Math.max(0, Math.round((passado / total) * 100)));
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T23:59:59');
+  return d.toLocaleDateString('pt-BR');
+}
+
+function formatMoney(value) {
+  return `R$ ${(value || 0).toFixed(2)}`;
 }
 
 /* ─── Show Notification (legacy) ─── */
@@ -375,6 +393,7 @@ async function addProject(data) {
     updateDashboardStats();
     renderVerticalChart();
     agent.setProjects(projects);
+    loadNotifications();
     if (project.precisaMarketing) {
       const team = marketingTeam.filter(m => m.vertical === project.vertical);
       if (team.length > 0) {
@@ -401,17 +420,17 @@ async function deleteProject(id) {
     await fetch(`${API_BASE}/projects/${id}`, { method: 'DELETE' });
     projects = projects.filter(p => p.id !== id);
     renderProjects();
-    renderEditProjectsList();
     updateDashboardStats();
     renderVerticalChart();
     agent.setProjects(projects);
-    showToast('Projeto removido com sucesso.', 'info');
+    loadNotifications();
+    showToast('🗑️ Projeto removido com sucesso.', 'info');
   } catch (err) {
     alert('Erro ao remover projeto');
   }
 }
 
-/* ─── Render Projects (with filters, search, sort, pagination) ─── */
+/* ─── Render Projects ─── */
 function renderProjects() {
   const list = document.getElementById('projectsList');
   if (!list) return;
@@ -434,11 +453,15 @@ function renderProjects() {
         !(p.vertical || '').toLowerCase().includes(searchTerm)) return false;
     if (filterV && p.vertical !== filterV) return false;
     if (filterS) {
-      const status = getStatusInfo(p);
-      if (filterS === 'urgente' && status.label !== 'Urgente') return false;
-      if (filterS === 'proximo' && status.label !== 'Próximo') return false;
-      if (filterS === 'prazo' && status.label !== 'OK') return false;
-      if (filterS === 'atrasado' && status.label !== 'Atrasado') return false;
+      if (['em_andamento', 'planejamento', 'concluido', 'bloqueado', 'cancelado'].includes(filterS)) {
+        if (p.status !== filterS) return false;
+      } else {
+        const s = getStatusInfo(p);
+        if (filterS === 'urgente' && s.label !== 'Urgente') return false;
+        if (filterS === 'proximo' && s.label !== 'Próximo') return false;
+        if (filterS === 'prazo' && s.label !== 'OK') return false;
+        if (filterS === 'atrasado' && s.label !== 'Atrasado') return false;
+      }
     }
     return true;
   });
@@ -464,21 +487,25 @@ function renderProjects() {
   }
 
   list.innerHTML = pageItems.map(p => {
-    const status = getStatusInfo(p);
+    const sp = getStatusInfo(p);
     const progress = getProgressInfo(p);
     const lucroLiquido = (p.lucro || 0) - (p.custo || 0);
     const marketingScore = (p.cViability || 3) + (p.cImpact || 3) + (p.cAreas || 3) + (p.cAlignment || 3) + (p.cInnovation || 3);
-    const barColor = status.dot === 'red' ? 'red' : status.dot === 'yellow' ? 'yellow' : 'green';
+    const barColor = sp.dot === 'red' ? 'red' : sp.dot === 'yellow' ? 'yellow' : 'green';
     const isProfit = lucroLiquido >= 0;
+    const st = STATUS_MAP[p.status] || STATUS_MAP.em_andamento;
 
     return `
-      <div class="project-card">
+      <div class="project-card" onclick="openDetailPage(${p.id})" style="cursor:pointer;">
         <div class="project-card-header">
           <div class="project-card-header-left">
             <h3 title="${p.nome.replace(/"/g, '&quot;')}">${p.nome}</h3>
             <div class="project-card-responsavel">👤 ${p.responsavel || 'Sem responsável'}</div>
           </div>
-          <span class="badge ${status.class}"><span class="status-dot ${status.dot}"></span> ${status.label}</span>
+          <div style="display:flex;gap:0.35rem;flex-wrap:wrap;align-items:center;">
+            <span class="badge ${st.class}" style="font-size:0.72rem;">${st.icon} ${st.label}</span>
+            <span class="badge ${sp.class}"><span class="status-dot ${sp.dot}"></span> ${sp.label}</span>
+          </div>
         </div>
         <div class="project-card-body">
           <div class="info-item">
@@ -487,7 +514,7 @@ function renderProjects() {
           </div>
           <div class="info-item">
             <span class="label">Prazo</span>
-            <span class="value">${formatDate(p.prazo)}${status.diff !== undefined ? ` (${status.diff}d)` : ''}</span>
+            <span class="value">${formatDate(p.prazo)}${sp.diff !== undefined ? ` (${sp.diff}d)` : ''}</span>
           </div>
           <div class="info-item">
             <span class="label">Custo</span>
@@ -522,7 +549,7 @@ function renderProjects() {
             ${p.custo > 0 ? '<span class="tag tag-info">💰 ' + formatMoney(p.custo) + '</span>' : ''}
           </div>
           <div class="project-card-actions">
-            ${currentUser && (currentUser.role === 'gerente-marketing' || currentUser.role === 'desenvolvedor') ? `<button class="btn btn-ghost btn-xs" onclick="analyzeProject(${p.id})" title="Analisar projeto">Analisar</button>` : ''}
+            ${currentUser && (currentUser.role === 'gerente-marketing' || currentUser.role === 'desenvolvedor') ? `<button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();analyzeProject(${p.id})" title="Analisar projeto">Analisar</button>` : ''}
           </div>
         </div>
       </div>`;
@@ -535,10 +562,7 @@ function renderProjects() {
 function renderPagination(totalPages) {
   const pag = document.getElementById('pagination');
   if (!pag) return;
-  if (totalPages <= 1) {
-    pag.style.display = 'none';
-    return;
-  }
+  if (totalPages <= 1) { pag.style.display = 'none'; return; }
   pag.style.display = 'flex';
   let html = `<button onclick="goToPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>‹</button>`;
   for (let i = 1; i <= totalPages; i++) {
@@ -592,6 +616,7 @@ function renderEditProjectsList() {
     const prazoDate = new Date(p.prazo + 'T23:59:59');
     const diff = Math.ceil((prazoDate - hoje) / (1000 * 60 * 60 * 24));
     const urgente = diff <= 7;
+    const st = STATUS_MAP[p.status] || STATUS_MAP.em_andamento;
     return `
       <div class="project-card" style="margin-bottom:0.5rem;">
         <div class="project-card-header">
@@ -600,6 +625,7 @@ function renderEditProjectsList() {
             <div class="project-card-responsavel">👤 ${p.responsavel || 'Sem responsável'}</div>
           </div>
           <div class="project-card-actions" style="display:flex;gap:0.35rem;">
+            <span class="badge ${st.class}">${st.icon} ${st.label}</span>
             <button class="btn btn-secondary btn-xs" onclick="openEditModal(${p.id})">✏️ Editar</button>
             <button class="btn btn-danger btn-xs" onclick="deleteProject(${p.id})">🗑️</button>
           </div>
@@ -648,7 +674,6 @@ function updateDashboardStats() {
     riscoTrend.textContent = `${atrasados.length} atrasado(s) · ${urgentes.length} urgente(s)`;
   }
 
-  /* Vertical Breakdown */
   const breakdown = document.getElementById('verticalBreakdown');
   if (breakdown) {
     if (projects.length === 0) {
@@ -675,11 +700,7 @@ function updateDashboardStats() {
       }</div>`;
     }
   }
-
-  /* Projects near deadline */
   updateProximosProjetos();
-
-  /* Overdue projects */
   updateProjetosAtrasados();
 }
 
@@ -693,29 +714,23 @@ function updateProximosProjetos() {
     const diff = Math.ceil((d - hoje) / (1000 * 60 * 60 * 24));
     return diff >= 0 && diff <= 30;
   }).sort((a, b) => a.prazo.localeCompare(b.prazo));
-
   if (countEl) countEl.textContent = proximos.length;
-
   if (proximos.length === 0) {
     el.innerHTML = '<p class="empty-state">Nenhum projeto próximo do vencimento.</p>';
     return;
   }
-
   el.innerHTML = `<div class="mini-project-list">${proximos.slice(0, 5).map(p => {
     const d = new Date(p.prazo + 'T23:59:59');
     const diff = Math.ceil((d - hoje) / (1000 * 60 * 60 * 24));
     const urgente = diff <= 7;
     return `
-      <div class="mini-project-card">
+      <div class="mini-project-card" onclick="openDetailPage(${p.id})" style="cursor:pointer;">
         <div class="mini-project-info">
           <div class="mini-project-name">${p.nome}</div>
           <div class="mini-project-meta">
             <span>${p.vertical}</span>
             <span class="badge ${urgente ? 'badge-warning' : 'badge-info'}">${diff}d</span>
           </div>
-        </div>
-        <div class="mini-project-actions">
-          <button class="btn btn-ghost btn-xs" onclick="navegar('projetos')">Ver</button>
         </div>
       </div>`;
   }).join('')}${proximos.length > 5 ? `<p style="text-align:center;font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">+${proximos.length - 5} mais</p>` : ''}</div>`;
@@ -730,28 +745,22 @@ function updateProjetosAtrasados() {
     const d = new Date(p.prazo + 'T23:59:59');
     return d < hoje;
   }).sort((a, b) => a.prazo.localeCompare(b.prazo));
-
   if (countEl) countEl.textContent = atrasados.length;
-
   if (atrasados.length === 0) {
     el.innerHTML = '<p class="empty-state">Nenhum projeto atrasado. 🎉</p>';
     return;
   }
-
   el.innerHTML = `<div class="mini-project-list">${atrasados.slice(0, 5).map(p => {
     const d = new Date(p.prazo + 'T23:59:59');
     const diff = Math.ceil((hoje - d) / (1000 * 60 * 60 * 24));
     return `
-      <div class="mini-project-card">
+      <div class="mini-project-card" onclick="openDetailPage(${p.id})" style="cursor:pointer;">
         <div class="mini-project-info">
           <div class="mini-project-name" style="color:var(--danger)">${p.nome}</div>
           <div class="mini-project-meta">
             <span>${p.vertical}</span>
             <span class="badge badge-danger">${diff}d atrasado</span>
           </div>
-        </div>
-        <div class="mini-project-actions">
-          <button class="btn btn-ghost btn-xs" onclick="navegar('projetos')">Ver</button>
         </div>
       </div>`;
   }).join('')}${atrasados.length > 5 ? `<p style="text-align:center;font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem;">+${atrasados.length - 5} mais</p>` : ''}</div>`;
@@ -771,13 +780,10 @@ function renderVerticalChart() {
   canvas.style.width = w + 'px';
   canvas.style.height = h + 'px';
   ctx.scale(dpr, dpr);
-
   const counts = {};
   projects.forEach(p => { counts[p.vertical] = (counts[p.vertical] || 0) + 1; });
   const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-
   ctx.clearRect(0, 0, w, h);
-
   if (entries.length === 0) {
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#94a3b8';
     ctx.font = '14px Inter, sans-serif';
@@ -785,28 +791,22 @@ function renderVerticalChart() {
     ctx.fillText('Nenhum projeto cadastrado', w / 2, h / 2);
     return;
   }
-
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  const textColor = isDark ? '#94a3b8' : '#475569';
+  const textColor = '#475569';
   const barColors = ['#003399', '#3366ff', '#6088ff', '#8aa8ff', '#b3c7ff', '#dbe4ff'];
   const maxVal = Math.max(...entries.map(e => e[1]));
   const padding = { top: 20, bottom: 40, left: 20, right: 20 };
   const chartW = w - padding.left - padding.right;
   const chartH = h - padding.top - padding.bottom;
   const barWidth = Math.min(80, (chartW - (entries.length - 1) * 12) / entries.length);
-
   const totalWidth = entries.length * barWidth + (entries.length - 1) * 12;
   const startX = padding.left + (chartW - totalWidth) / 2;
-
   entries.forEach(([v, c], i) => {
     const x = startX + i * (barWidth + 12);
     const barH = (c / maxVal) * chartH;
     const y = padding.top + chartH - barH;
-
     const grad = ctx.createLinearGradient(x, y, x, padding.top + chartH);
     grad.addColorStop(0, barColors[i % barColors.length]);
     grad.addColorStop(1, barColors[(i + 1) % barColors.length] + '80');
-
     ctx.fillStyle = grad;
     ctx.beginPath();
     const r = 4;
@@ -818,16 +818,14 @@ function renderVerticalChart() {
     ctx.lineTo(x, y + r);
     ctx.quadraticCurveTo(x, y, x + r, y);
     ctx.fill();
-
     ctx.fillStyle = textColor;
     ctx.font = '11px Inter, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(c, x + barWidth / 2, y - 6);
-
     ctx.fillStyle = textColor;
     ctx.font = '10px Inter, sans-serif';
     ctx.textAlign = 'center';
-    const label = v.length > 12 ? v.substring(0, 12) + '…' : v;
+    const label = v.length > 12 ? v.substring(0, 12) + '\u2026' : v;
     ctx.fillText(label, x + barWidth / 2, padding.top + chartH + 16);
   });
 }
@@ -852,20 +850,13 @@ function analyzeProject(id) {
 /* ─── Preencher Dados de Exemplo ─── */
 function fillExampleData() {
   const nomes = [
-    'Modernização do Check-in Digital',
-    'Campanha Azul Fidelidade Premium',
-    'Integração com Parceiros',
-    'Aplicativo de Embarque Inteligente',
-    'Sistema de Gestão de Bagagens',
-    'Expansão Azul Viagens',
-    'Plataforma de Autoatendimento',
-    'Otimização de Rotas Domésticas',
-    'Programa de Milhas Aceleradas',
-    'Hub de Conexões Nordeste',
-    'App Trip Crew',
-    'Chatbot de Atendimento Azul',
-    'Monitoramento de Frota em Tempo Real',
-    'Análise de Satisfação do Passageiro',
+    'Modernização do Check-in Digital', 'Campanha Azul Fidelidade Premium',
+    'Integração com Parceiros', 'Aplicativo de Embarque Inteligente',
+    'Sistema de Gestão de Bagagens', 'Expansão Azul Viagens',
+    'Plataforma de Autoatendimento', 'Otimização de Rotas Domésticas',
+    'Programa de Milhas Aceleradas', 'Hub de Conexões Nordeste',
+    'App Trip Crew', 'Chatbot de Atendimento Azul',
+    'Monitoramento de Frota em Tempo Real', 'Análise de Satisfação do Passageiro',
     'Sistema de Precificação Dinâmica'
   ];
   const verticais = ['Viagens', 'Conecta', 'Fidelidade', 'Logistica', 'TecOps', 'azul'];
@@ -887,7 +878,6 @@ function fillExampleData() {
     'Pesquisa contínua de satisfação dos passageiros com coleta automatizada após cada voo, análise de sentimentos com NLP e geração de relatórios semanais para a diretoria com insights acionáveis.',
     'Sistema de precificação dinâmica de passagens utilizando machine learning para ajustar tarifas em tempo real com base em demanda, sazonalidade, concorrência e histórico de compras dos clientes.'
   ];
-
   const idx = Math.floor(Math.random() * nomes.length);
   document.getElementById('nome').value = nomes[idx];
   document.getElementById('vertical').value = verticais[Math.floor(Math.random() * verticais.length)];
@@ -913,7 +903,6 @@ function runAIAnalysis() {
   const resultsEl = document.getElementById('aiResults');
   if (loadingEl) loadingEl.style.display = 'flex';
   if (resultsEl) resultsEl.style.display = 'none';
-
   setTimeout(() => {
     const analysis = agent.analyze();
     renderAnalysis(analysis);
@@ -927,17 +916,15 @@ function runAIAnalysis() {
 function renderAIDashboardCards(analysis) {
   const container = document.getElementById('aiDashboardCards');
   if (!container) return;
-
   if (!analysis || projects.length === 0) {
     container.innerHTML = '<p class="empty-state">Faça a análise para ver recomendações inteligentes.</p>';
     return;
   }
-
   const conflitos = analysis.conflitos || [];
+  const oportunidades = analysis.oportunidades || [];
   const marketingReqs = analysis.marketingRequests || [];
   const prioridades = analysis.prioridades || [];
   const topP = prioridades.filter(p => p.score >= 5).length;
-
   container.innerHTML = `
     <div class="ai-cards">
       <div class="ai-card">
@@ -978,77 +965,7 @@ function renderAIDashboardCards(analysis) {
     </div>`;
 }
 
-/* ─── AI Criteria Preview ─── */
-function updateAICriteriaPreview() {
-  const nome = document.getElementById('nome').value.trim();
-  const descricao = document.getElementById('descricao').value.trim();
-  const previewEl = document.getElementById('aiCriteriaPreview');
-  if (!nome && !descricao) {
-    previewEl.innerHTML = '<span style="font-size:0.82rem;color:var(--primary);">💡 Preencha o nome e a descrição para a IA calcular os critérios automaticamente.</span>';
-    return;
-  }
-  const project = { nome, descricao };
-  const criteria = agent.avaliarCriteriosMarketing(project);
-  const total = criteria.cViability + criteria.cImpact + criteria.cAreas + criteria.cAlignment + criteria.cInnovation;
-  previewEl.innerHTML = `
-    <span style="font-size:0.82rem;color:var(--primary);font-weight:600;">🤖 IA calculou:</span>
-    <span class="tag tag-success">${criteria.cViability}/5 Viab</span>
-    <span class="tag tag-success">${criteria.cImpact}/5 Impacto</span>
-    <span class="tag tag-success">${criteria.cAreas}/5 Áreas</span>
-    <span class="tag tag-success">${criteria.cAlignment}/5 Estratégia</span>
-    <span class="tag tag-success">${criteria.cInnovation}/5 Inovação</span>
-    <span class="tag ${total >= 22 ? 'tag-warning' : total >= 18 ? 'tag-info' : 'tag-success'}">Total: ${total}/25</span>
-  `;
-}
-
-document.getElementById('nome')?.addEventListener('input', updateAICriteriaPreview);
-document.getElementById('descricao')?.addEventListener('input', updateAICriteriaPreview);
-
-document.getElementById('projectForm')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const nome = document.getElementById('nome').value;
-  const descricao = document.getElementById('descricao').value;
-  const projectForAI = { nome, descricao };
-  const criteria = agent.avaliarCriteriosMarketing(projectForAI);
-  const data = {
-    nome,
-    vertical: document.getElementById('vertical').value,
-    responsavel: document.getElementById('responsavel').value,
-    descricao,
-    prazo: document.getElementById('prazo').value,
-    custo: parseFloat(document.getElementById('custo').value) || 0,
-    lucro: parseFloat(document.getElementById('lucro').value) || 0,
-    equipe: parseInt(document.getElementById('equipe').value) || 1,
-    precisaMarketing: agent.detectarNecessidadeMarketing(projectForAI),
-    cViability: criteria.cViability,
-    cImpact: criteria.cImpact,
-    cAreas: criteria.cAreas,
-    cAlignment: criteria.cAlignment,
-    cInnovation: criteria.cInnovation
-  };
-  await addProject(data);
-  e.target.reset();
-});
-
-document.getElementById('runAnalysisBtn')?.addEventListener('click', () => {
-  if (projects.length === 0) {
-    showToast('📋 Cadastre pelo menos um projeto antes de executar a análise.', 'warning');
-    return;
-  }
-  const loadingEl = document.getElementById('analysisLoading');
-  const resultsEl = document.getElementById('aiResults');
-  if (loadingEl) loadingEl.style.display = 'flex';
-  if (resultsEl) resultsEl.style.display = 'none';
-
-  setTimeout(() => {
-    const analysis = agent.analyze();
-    renderAnalysis(analysis);
-    if (loadingEl) loadingEl.style.display = 'none';
-    if (resultsEl) resultsEl.style.display = 'grid';
-    showToast('🤖 Análise concluída!', 'success');
-  }, 600);
-});
-
+/* ─── Render Analysis ─── */
 function renderAnalysis(analysis) {
   const prioridadeEl = document.getElementById('prioridadeContent');
   if ((!analysis.marketingRanking || analysis.marketingRanking.length === 0) &&
@@ -1106,8 +1023,7 @@ function renderAnalysis(analysis) {
             <span>Estratégia: ${p.alinhamento || 0}/5</span>
             <span>Inovação: ${p.inovacao || 0}/5</span>
           </div>
-        </div>
-      `;
+        </div>`;
     }).join('');
   }
 
@@ -1132,12 +1048,7 @@ function renderAnalysis(analysis) {
       const contatos = team.length > 0
         ? `<div style="margin-top:0.25rem;font-size:0.8rem;color:var(--info);">📧 Notificar: ${team.map(t => t.email).join(', ')}</div>`
         : '<div style="margin-top:0.25rem;font-size:0.8rem;color:var(--warning-text);">⚠ Nenhum membro de marketing cadastrado para esta vertical.</div>';
-      return `
-      <div class="ai-item">
-        <span class="badge badge-warning">Marketing</span>
-        ${m.mensagem}
-        ${contatos}
-      </div>`;
+      return `<div class="ai-item"><span class="badge badge-warning">Marketing</span> ${m.mensagem} ${contatos}</div>`;
     }).join('');
   }
 
@@ -1161,10 +1072,192 @@ function renderAnalysis(analysis) {
   }
 }
 
+/* ─── AI Criteria Preview ─── */
+function updateAICriteriaPreview() {
+  const nome = document.getElementById('nome').value.trim();
+  const descricao = document.getElementById('descricao').value.trim();
+  const previewEl = document.getElementById('aiCriteriaPreview');
+  if (!nome && !descricao) {
+    previewEl.innerHTML = '<span style="font-size:0.82rem;color:var(--primary);">💡 Preencha o nome e a descrição para a IA calcular os critérios automaticamente.</span>';
+    return;
+  }
+  const project = { nome, descricao };
+  const criteria = agent.avaliarCriteriosMarketing(project);
+  const total = criteria.cViability + criteria.cImpact + criteria.cAreas + criteria.cAlignment + criteria.cInnovation;
+  previewEl.innerHTML = `
+    <span style="font-size:0.82rem;color:var(--primary);font-weight:600;">🤖 IA calculou:</span>
+    <span class="tag tag-success">${criteria.cViability}/5 Viab</span>
+    <span class="tag tag-success">${criteria.cImpact}/5 Impacto</span>
+    <span class="tag tag-success">${criteria.cAreas}/5 Áreas</span>
+    <span class="tag tag-success">${criteria.cAlignment}/5 Estratégia</span>
+    <span class="tag tag-success">${criteria.cInnovation}/5 Inovação</span>
+    <span class="tag ${total >= 22 ? 'tag-warning' : total >= 18 ? 'tag-info' : 'tag-success'}">Total: ${total}/25</span>
+  `;
+}
+
+document.getElementById('nome')?.addEventListener('input', updateAICriteriaPreview);
+document.getElementById('descricao')?.addEventListener('input', updateAICriteriaPreview);
+
+document.getElementById('projectForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const nome = document.getElementById('nome').value;
+  const descricao = document.getElementById('descricao').value;
+  const projectForAI = { nome, descricao };
+  const criteria = agent.avaliarCriteriosMarketing(projectForAI);
+  const data = {
+    nome,
+    vertical: document.getElementById('vertical').value,
+    responsavel: document.getElementById('responsavel').value,
+    descricao,
+    prazo: document.getElementById('prazo').value,
+    custo: parseFloat(document.getElementById('custo').value) || 0,
+    lucro: parseFloat(document.getElementById('lucro').value) || 0,
+    equipe: parseInt(document.getElementById('equipe').value) || 1,
+    status: document.getElementById('projectStatus').value,
+    precisaMarketing: agent.detectarNecessidadeMarketing(projectForAI),
+    cViability: criteria.cViability,
+    cImpact: criteria.cImpact,
+    cAreas: criteria.cAreas,
+    cAlignment: criteria.cAlignment,
+    cInnovation: criteria.cInnovation
+  };
+  await addProject(data);
+  e.target.reset();
+});
+
+document.getElementById('runAnalysisBtn')?.addEventListener('click', () => {
+  if (projects.length === 0) {
+    showToast('📋 Cadastre pelo menos um projeto antes de executar a análise.', 'warning');
+    return;
+  }
+  const loadingEl = document.getElementById('analysisLoading');
+  const resultsEl = document.getElementById('aiResults');
+  if (loadingEl) loadingEl.style.display = 'flex';
+  if (resultsEl) resultsEl.style.display = 'none';
+  setTimeout(() => {
+    const analysis = agent.analyze();
+    renderAnalysis(analysis);
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (resultsEl) resultsEl.style.display = 'grid';
+    showToast('🤖 Análise concluída!', 'success');
+  }, 600);
+});
+
 /* ─── Refresh Dashboard ─── */
 function refreshDashboard() {
   loadProjects();
   showToast('🔄 Dashboard atualizado!', 'success');
+}
+
+/* ─── Detail Page ─── */
+let detailProjectId = null;
+
+function openDetailPage(id) {
+  detailProjectId = id;
+  navegar('detalhes');
+  renderDetailPage(id);
+}
+
+function renderDetailPage(id) {
+  const p = projects.find(x => x.id === id);
+  if (!p) {
+    showToast('❌ Projeto não encontrado.', 'error');
+    navegar('projetos');
+    return;
+  }
+
+  document.getElementById('detailNome').textContent = p.nome;
+  document.getElementById('detailSubtitle').textContent = `Detalhes do projeto #${p.id}`;
+  document.getElementById('detailVertical').textContent = p.vertical;
+  document.getElementById('detailResponsavel').textContent = p.responsavel || 'Não definido';
+  document.getElementById('detailPrazo').textContent = formatDate(p.prazo);
+
+  const hoje = new Date();
+  const prazoDate = new Date(p.prazo + 'T23:59:59');
+  const diff = Math.ceil((prazoDate - hoje) / (1000 * 60 * 60 * 24));
+  document.getElementById('detailDias').textContent = diff < 0 ? `${Math.abs(diff)} dias atrasado` : `${diff} dias`;
+
+  document.getElementById('detailCusto').textContent = formatMoney(p.custo || 0);
+  document.getElementById('detailLucro').textContent = formatMoney(p.lucro || 0);
+  document.getElementById('detailEquipe').textContent = `${p.equipe} pessoa(s)`;
+
+  const st = STATUS_MAP[p.status] || STATUS_MAP.em_andamento;
+  document.getElementById('detailStatus').innerHTML = `<span class="badge ${st.class}">${st.icon} ${st.label}</span>`;
+
+  const analysis = agent.analyze();
+  const prio = (analysis.prioridades || []).find(pr => pr.id === id);
+  const mRank = (analysis.marketingRanking || []).find(m => m.id === id);
+  document.getElementById('detailPrioridade').textContent = prio ? `${prio.nivel} (${prio.score}/10)` : 'Não avaliado';
+
+  const mktText = p.precisaMarketing ? '⚠️ Requer apoio' : '✅ Não requer';
+  document.getElementById('detailMarketing').innerHTML = `${mktText} ${mRank ? `— Score: ${mRank.score}/25` : ''}`;
+  document.getElementById('detailDescricao').textContent = p.descricao || 'Sem descrição.';
+
+  const lucroLiquido = (p.lucro || 0) - (p.custo || 0);
+  const risco = diff < 0 ? '🔴 Alto - Projeto atrasado' : diff <= 7 ? '🟡 Médio - Próximo do prazo' : diff <= 30 ? '🟢 Baixo - Prazo razoável' : '🟢 Baixo - Dentro do prazo';
+  document.getElementById('detailRisco').innerHTML = `
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.35rem;">
+      <span style="font-size:0.9rem;">${risco}</span>
+      <span style="font-size:0.9rem;">💰 Lucro líquido: <strong class="${lucroLiquido >= 0 ? 'positive' : 'negative'}">${formatMoney(lucroLiquido)}</strong></span>
+      <span style="font-size:0.9rem;">📊 Progresso: ${getProgressInfo(p)}%</span>
+    </div>`;
+
+  /* Métricas */
+  const metricaEl = document.getElementById('detailMetricas');
+  metricaEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+      <div style="padding:0.75rem;background:var(--bg-card-hover);border-radius:var(--radius);border:1px solid var(--border);">
+        <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;">Criado em</div>
+        <div style="font-weight:600;font-size:0.9rem;">${p.criadoEm ? new Date(p.criadoEm).toLocaleString('pt-BR') : '-'}</div>
+      </div>
+      <div style="padding:0.75rem;background:var(--bg-card-hover);border-radius:var(--radius);border:1px solid var(--border);">
+        <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;">Última atualização</div>
+        <div style="font-weight:600;font-size:0.9rem;">${p.atualizadoEm ? new Date(p.atualizadoEm).toLocaleString('pt-BR') : '-'}</div>
+      </div>
+      <div style="padding:0.75rem;background:var(--bg-card-hover);border-radius:var(--radius);border:1px solid var(--border);">
+        <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;">Status atual</div>
+        <div style="font-weight:600;font-size:0.9rem;">${st.icon} ${st.label}</div>
+      </div>
+      <div style="padding:0.75rem;background:var(--bg-card-hover);border-radius:var(--radius);border:1px solid var(--border);">
+        <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;">Mkt Score</div>
+        <div style="font-weight:600;font-size:0.9rem;">${mRank ? mRank.score + '/25' : '-'}</div>
+      </div>
+    </div>`;
+
+  /* Histórico */
+  loadHistory(id);
+}
+
+async function loadHistory(projectId) {
+  const el = document.getElementById('detailHistory');
+  if (!el) return;
+  el.innerHTML = '<div class="loading-overlay"><div class="spinner spinner-sm"></div><span>Carregando...</span></div>';
+  try {
+    const res = await fetch(`${API_BASE}/projects/${projectId}/history`);
+    const logs = await res.json();
+    if (logs.length === 0) {
+      el.innerHTML = '<p class="empty-state">Nenhum evento registrado no histórico.</p>';
+      return;
+    }
+    const tipos = {
+      criacao: { icon: '✅', color: 'var(--success)' },
+      edicao: { icon: '✏️', color: 'var(--info)' },
+      exclusao: { icon: '🗑️', color: 'var(--danger)' }
+    };
+    el.innerHTML = `<div style="display:flex;flex-direction:column;gap:0.6rem;">${logs.map(log => {
+      const t = tipos[log.tipo] || { icon: '📋', color: 'var(--text-muted)' };
+      return `
+        <div style="display:flex;gap:0.6rem;padding:0.5rem 0.65rem;background:var(--bg-card-hover);border-radius:var(--radius);border-left:3px solid ${t.color};">
+          <span style="font-size:1.1rem;flex-shrink:0;">${t.icon}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.82rem;color:var(--text);">${log.descricao}</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.15rem;">${new Date(log.data).toLocaleString('pt-BR')} · ${log.usuario}</div>
+          </div>
+        </div>`;
+    }).join('')}</div>`;
+  } catch (err) {
+    el.innerHTML = '<p class="empty-state">Erro ao carregar histórico.</p>';
+  }
 }
 
 /* ─── Edit Modal ─── */
@@ -1179,6 +1272,7 @@ function openEditModal(id) {
   document.getElementById('editLucro').value = p.lucro || '';
   document.getElementById('editEquipe').value = p.equipe || 1;
   document.getElementById('editDescricao').value = p.descricao || '';
+  document.getElementById('editProjectStatus').value = p.status || 'em_andamento';
 
   const sel = document.getElementById('editVertical');
   const usedValues = [...new Set(projects.map(x => x.vertical))];
@@ -1204,6 +1298,7 @@ async function saveEditProject() {
     custo: parseFloat(document.getElementById('editCusto').value) || 0,
     lucro: parseFloat(document.getElementById('editLucro').value) || 0,
     equipe: parseInt(document.getElementById('editEquipe').value) || 1,
+    status: document.getElementById('editProjectStatus').value,
     descricao: document.getElementById('editDescricao').value.trim()
   };
   try {
@@ -1222,6 +1317,7 @@ async function saveEditProject() {
     updateDashboardStats();
     renderVerticalChart();
     agent.setProjects(projects);
+    loadNotifications();
     showNotification('Projeto atualizado com sucesso!', 'info');
     showToast('✅ Projeto atualizado com sucesso!', 'success');
   } catch (err) {
@@ -1229,36 +1325,101 @@ async function saveEditProject() {
   }
 }
 
+function deleteEditProject() {
+  if (!editingProjectId) return;
+  deleteProject(editingProjectId);
+  closeEditModal();
+}
+
+/* ─── Notifications ─── */
+let notifPanelOpen = false;
+
+async function loadNotifications() {
+  try {
+    const res = await fetch(`${API_BASE}/notifications`);
+    const notifs = await res.json();
+    const badge = document.getElementById('notifBadge');
+    const unread = notifs.filter(n => !n.lida).length;
+    if (badge) {
+      if (unread > 0) {
+        badge.style.display = 'flex';
+        badge.textContent = unread > 99 ? '99+' : unread;
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    const list = document.getElementById('notifList');
+    if (list) {
+      if (notifs.length === 0) {
+        list.innerHTML = '<p style="font-size:0.8rem;color:var(--text-muted);text-align:center;">Nenhuma notificação.</p>';
+      } else {
+        const tipoMap = {
+          critica: { icon: '🔴', class: 'badge-danger' },
+          aviso: { icon: '🟡', class: 'badge-warning' },
+          info: { icon: '🔵', class: 'badge-info' }
+        };
+        list.innerHTML = notifs.slice(0, 20).map(n => {
+          const t = tipoMap[n.tipo] || tipoMap.info;
+          return `
+            <div style="display:flex;gap:0.5rem;padding:0.5rem 0;border-bottom:1px solid var(--border-light);${n.lida ? 'opacity:0.6;' : ''}">
+              <span style="font-size:0.85rem;flex-shrink:0;">${t.icon}</span>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:0.78rem;color:var(--text);">${n.mensagem}</div>
+                <div style="font-size:0.65rem;color:var(--text-muted);margin-top:0.1rem;">${new Date(n.data).toLocaleString('pt-BR')}</div>
+              </div>
+            </div>`;
+        }).join('');
+        if (notifs.length > 20) {
+          list.innerHTML += `<p style="font-size:0.72rem;color:var(--text-muted);text-align:center;padding:0.35rem;">+${notifs.length - 20} mais</p>`;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao carregar notificações:', err);
+  }
+}
+
+function toggleNotificationPanel() {
+  notifPanelOpen = !notifPanelOpen;
+  const panel = document.getElementById('notifPanel');
+  panel.style.display = notifPanelOpen ? 'block' : 'none';
+}
+
+async function markAllNotifRead() {
+  try {
+    await fetch(`${API_BASE}/notifications/read-all`, { method: 'POST' });
+    loadNotifications();
+    showToast('✅ Todas notificações marcadas como lidas.', 'success');
+  } catch (err) {
+    console.error('Erro ao marcar notificações:', err);
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const bell = document.getElementById('notificationBell');
+  if (bell && !bell.contains(e.target) && notifPanelOpen) {
+    document.getElementById('notifPanel').style.display = 'none';
+    notifPanelOpen = false;
+  }
+});
+
 /* ─── Dev Edit Mode ─── */
 let editModeActive = false;
-let editableElementCounter = 0;
 
-function makeElementEditable(el) {
-  if (!el || el.contentEditable === 'true') return;
-  const skip = ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'SCRIPT', 'STYLE', 'CANVAS', 'IMG', 'VIDEO', 'BR', 'HR', 'A'];
-  if (skip.includes(el.tagName)) return;
-  const text = el.textContent.trim();
-  if (!text) return;
-  if (el.closest('.editable-select-list') || el.closest('.resize-handle') || el.closest('[data-dev-cat]')) return;
-  el.contentEditable = 'true';
-  el.classList.add('editable-highlight');
-  el.dataset.devCat = 'labels';
-  el.dataset.devKey = 'label_' + (editableElementCounter++);
-  el.dataset.devOld = text;
-}
-
-function collectAllEditableElements() {
-  editableElementCounter = 0;
-  const targets = document.querySelectorAll(
-    '.page.active h1, .page.active h2, .page.active h3, .page.active h4, ' +
-    '.page.active h5, .page.active p, .page.active span, ' +
-    '.page.active .page-subtitle, .page.active .kpi-label, .page.active .kpi-value, ' +
-    '.page.active .section-badge, .page.active .btn, .page.active label, ' +
-    '.page.active .nav-label, .page.active .ai-card-title, .page.active .ai-card-count, ' +
-    '.page.active .ai-panel h3, .sidebar-nav .nav-label'
-  );
-  targets.forEach(makeElementEditable);
-}
+const EDITABLE_SELECTORS = [
+  { cat: 'nav_labels', sel: '#appNav .nav-item .nav-label', key: el => {
+    const page = el.closest('.nav-item')?.dataset?.page;
+    const map = { dashboard:'nav_dashboard', projetos:'nav_projetos', 'cadastrar-projeto':'nav_cadastrar', 'editar-projetos':'nav_editar' };
+    return map[page] || page;
+  }},
+  { cat: 'ai_panels', sel: '.ai-panel h3', key: el => {
+    const texts = ['Prioridade', 'Conflitos', 'Oportunidades', 'Marketing', 'Resumo'];
+    for (const t of texts) { if (el.textContent.includes(t)) return 'panel_' + t.toLowerCase(); }
+    return null;
+  }},
+  { cat: 'btn_labels', sel: '#runAnalysisBtn', key: 'btn_analisar' },
+  { cat: 'btn_labels', sel: '#projectForm .btn-primary', key: 'btn_cadastrar' },
+];
 
 const REORDERABLE_SELECTORS = [
   { cat: 'nav_labels', container: '#appNav', items: '.nav-item' },
@@ -1283,48 +1444,41 @@ function takeSnapshot() {
   const snap = {};
   const nav = document.getElementById('appNav');
   if (nav) snap.appNavHTML = nav.innerHTML;
-
   const vSel = document.getElementById('vertical');
   const mSel = document.getElementById('mktVertical');
   if (vSel) snap.verticalHTML = vSel.innerHTML;
   if (mSel) snap.mktVerticalHTML = mSel.innerHTML;
-
   const panels = document.querySelectorAll('.ai-results .ai-panel');
   snap.panelOrder = [...panels].map(p => p.outerHTML);
-
   const edits = {};
-  document.querySelectorAll('[data-dev-cat]').forEach(el => {
-    const key = el.dataset.devKey;
-    if (key) edits[key] = el.textContent.trim();
-  });
+  for (const cfg of EDITABLE_SELECTORS) {
+    document.querySelectorAll(cfg.sel).forEach(el => {
+      const key = typeof cfg.key === 'function' ? cfg.key(el) : cfg.key;
+      if (key) edits[key] = el.textContent.trim();
+    });
+  }
   snap.edits = edits;
-
   const sizes = {};
   document.querySelectorAll(RESIZABLE_SEL).forEach(el => {
     if (el.id) sizes[el.id] = { w: el.style.width, h: el.style.height };
   });
   snap.sizes = sizes;
-
   return snap;
 }
 
 function restoreSnapshot(snap) {
   const nav = document.getElementById('appNav');
   if (nav && snap.appNavHTML) nav.innerHTML = snap.appNavHTML;
-
   const vSel = document.getElementById('vertical');
   const mSel = document.getElementById('mktVertical');
   if (vSel && snap.verticalHTML) vSel.innerHTML = snap.verticalHTML;
   if (mSel && snap.mktVerticalHTML) mSel.innerHTML = snap.mktVerticalHTML;
-
   const cont = document.querySelector('.ai-results');
   if (cont && snap.panelOrder) cont.innerHTML = snap.panelOrder.join('');
-
   for (const sel of Object.keys(snap.sizes || {})) {
     const el = document.getElementById(sel);
     if (el) { el.style.width = snap.sizes[sel].w; el.style.height = snap.sizes[sel].h; }
   }
-
   document.querySelectorAll('.editable-select-list').forEach(el => el.remove());
   document.querySelectorAll('.resize-handle').forEach(el => el.remove());
   document.querySelectorAll('[style*="width"]').forEach(el => {
@@ -1363,35 +1517,39 @@ function cancelEditMode() {
 }
 
 function enableInlineEditing() {
-  document.querySelectorAll('.nav-item').forEach(ni => ni.style.cursor = 'grab');
-
-  collectAllEditableElements();
   editModeSnapshot = takeSnapshot();
-
+  document.querySelectorAll('.nav-item').forEach(ni => ni.style.cursor = 'grab');
+  for (const cfg of EDITABLE_SELECTORS) {
+    document.querySelectorAll(cfg.sel).forEach(el => {
+      el.contentEditable = 'true';
+      el.classList.add('editable-highlight');
+      el.dataset.devCat = cfg.cat;
+      el.dataset.devKey = typeof cfg.key === 'function' ? cfg.key(el) : cfg.key;
+      el.dataset.devOld = el.textContent.trim();
+    });
+  }
   for (const cfg of REORDERABLE_SELECTORS) {
     const container = document.querySelector(cfg.container);
     if (!container) continue;
     container.classList.add('reorderable-container');
     if (container.tagName === 'SELECT') replaceSelectWithEditableList(container, cfg.cat);
   }
-
   enableBoxResizing();
   enableBoxRepositioning();
-
   document.addEventListener('keydown', editKeyHandler);
 }
 
 function disableInlineEditing() {
   document.querySelectorAll('.nav-item').forEach(ni => ni.style.cursor = '');
-
-  document.querySelectorAll('[contenteditable="true"]').forEach(el => {
-    el.contentEditable = 'false';
-    el.classList.remove('editable-highlight');
-    delete el.dataset.devCat;
-    delete el.dataset.devKey;
-    delete el.dataset.devOld;
-  });
-
+  for (const cfg of EDITABLE_SELECTORS) {
+    document.querySelectorAll(cfg.sel).forEach(el => {
+      el.contentEditable = 'false';
+      el.classList.remove('editable-highlight');
+      delete el.dataset.devCat;
+      delete el.dataset.devKey;
+      delete el.dataset.devOld;
+    });
+  }
   for (const cfg of REORDERABLE_SELECTORS) {
     const container = document.querySelector(cfg.container);
     if (!container) continue;
@@ -1399,26 +1557,22 @@ function disableInlineEditing() {
     if (container.dataset.editableList) {
       const list = document.querySelector(`.editable-select-list[data-for-select="${container.id}"]`);
       if (list) {
-        const optionsHtml = [...list.querySelectorAll('.editable-option')].map(el => {
+        list.querySelectorAll('.editable-option').forEach(el => {
           const input = el.querySelector('.editable-option-input');
-          const val = input ? input.value.trim() : '';
-          return val ? `<option value="${val}">${val}</option>` : '';
-        }).join('');
-        container.innerHTML = optionsHtml;
+          const opt = container.querySelector(`option[value="${el.dataset.value}"]`);
+          if (opt && input) opt.textContent = input.value;
+        });
       }
       delete container.dataset.editableList;
     }
   }
-
   document.querySelectorAll('.editable-select-list').forEach(el => {
     const sel = document.getElementById(el.dataset.forSelect);
     if (sel) sel.style.display = '';
     el.remove();
   });
-
   disableBoxResizing();
   disableBoxRepositioning();
-
   document.removeEventListener('keydown', editKeyHandler);
 }
 
@@ -1449,7 +1603,6 @@ function replaceSelectWithEditableList(select, cat) {
   list.innerHTML += `<button class="dev-add-btn" onclick="addEditableOption(this, '${cat}')">+ Adicionar</button>`;
   select.parentNode.insertBefore(list, select.nextSibling);
   select.style.display = 'none';
-
   list.querySelectorAll('.editable-option').forEach(el => {
     el.addEventListener('dragstart', e => {
       e.dataTransfer.effectAllowed = 'move';
@@ -1494,7 +1647,6 @@ function addEditableOption(btn, cat) {
   list.insertBefore(div, btn);
   div.querySelector('input').focus();
   div.querySelector('input').select();
-
   div.addEventListener('dragstart', e => {
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', '');
@@ -1515,9 +1667,7 @@ function addEditableOption(btn, cat) {
   });
 }
 
-/* ─── Box Resizing ─── */
 const RESIZABLE_SEL = '.ai-panel, .section-block, .stat-card, .project-card';
-let resizeObserver = null;
 
 function enableBoxResizing() {
   document.querySelectorAll(RESIZABLE_SEL).forEach(el => {
@@ -1526,7 +1676,6 @@ function enableBoxResizing() {
     handle.className = 'resize-handle';
     handle.innerHTML = '↘';
     el.appendChild(handle);
-
     let startX, startY, startW, startH;
     const onMouseDown = (e) => {
       e.preventDefault(); e.stopPropagation();
@@ -1559,13 +1708,11 @@ function disableBoxResizing() {
   });
 }
 
-/* ─── Box Repositioning ─── */
 const REPOSITIONABLE_CONT = '.ai-results';
 
 function enableBoxRepositioning() {
   const cont = document.querySelector(REPOSITIONABLE_CONT);
   if (!cont) return;
-
   cont.querySelectorAll('.ai-panel').forEach(el => {
     el.draggable = true;
     el.classList.add('dev-draggable');
@@ -1602,27 +1749,19 @@ function disableBoxRepositioning() {
 async function saveInlineEdits() {
   const categories = {};
   const deleted = {};
-  const directChanges = [];
-
   function ensureCat(cat) { if (!categories[cat]) categories[cat] = { items: [] }; }
   function ensureDel(cat) { if (!deleted[cat]) deleted[cat] = []; }
-
-  document.querySelectorAll('[data-dev-cat]').forEach(el => {
-    const cat = el.dataset.devCat;
-    const key = el.dataset.devKey;
-    const value = el.textContent.trim();
-    const oldValue = el.dataset.devOld || value;
-    if (!cat || !key) return;
-    if (cat === 'labels') {
-      if (oldValue !== value) {
-        directChanges.push({ oldValue, newValue: value });
-      }
-    } else {
+  for (const cfg of EDITABLE_SELECTORS) {
+    document.querySelectorAll(cfg.sel).forEach(el => {
+      if (!el.dataset.devCat || !el.dataset.devKey) return;
+      const cat = el.dataset.devCat;
+      const key = el.dataset.devKey;
+      const value = el.textContent.trim();
+      const oldValue = el.dataset.devOld || value;
       ensureCat(cat);
       categories[cat].items.push({ key, value, oldValue });
-    }
-  });
-
+    });
+  }
   for (const cfg of REORDERABLE_SELECTORS) {
     if (cfg.cat === 'nav_labels') {
       const container = document.querySelector(cfg.container);
@@ -1673,22 +1812,17 @@ async function saveInlineEdits() {
       }
     }
   }
-
   for (const catKey of Object.keys(categories)) {
     categories[catKey].items = categories[catKey].items.filter(i => i.key);
   }
-
-  if (Object.keys(categories).length === 0 && Object.keys(deleted).length === 0 && directChanges.length === 0) {
+  if (Object.keys(categories).length === 0 && Object.keys(deleted).length === 0) {
     showEditNotification('Nada foi alterado.', 'info');
     toggleEditMode();
     return;
   }
-
   try {
-    const body = {};
-    if (Object.keys(categories).length > 0) body.categories = categories;
+    const body = { categories };
     if (Object.keys(deleted).length > 0) body.deleted = deleted;
-    if (directChanges.length > 0) body.changes = directChanges;
     const res = await fetch(`${API_BASE}/dev/save`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1696,34 +1830,9 @@ async function saveInlineEdits() {
     });
     const result = await res.json();
     if (!res.ok) throw new Error(result.error || 'Erro ao salvar');
-    const totalChanges = (result.changes ? result.changes.length : 0) + (directChanges.length);
-
-    if (categories.verticals) {
-      const vertMap = {};
-      const vertItems = categories.verticals.items;
-      vertItems.forEach(item => { vertMap[item.key] = item.value; });
-      projects.forEach(p => {
-        if (vertMap[p.vertical] && vertMap[p.vertical] !== p.vertical) {
-          p.vertical = vertMap[p.vertical];
-        }
-      });
-      const newOptions = vertItems.map(item =>
-        `<option value="${item.value}">${item.value}</option>`
-      ).join('');
-      ['#vertical', '#mktVertical', '#editVertical'].forEach(selId => {
-        const sel = document.querySelector(selId);
-        if (!sel) return;
-        sel.innerHTML = newOptions;
-      });
-      renderProjects();
-      updateDashboardStats();
-      renderVerticalChart();
-      renderEditProjectsList();
-      agent.setProjects(projects);
-    }
-
-    showEditNotification('✅ ' + totalChanges + ' alteração(ões) salva(s).', 'success');
+    showEditNotification('✅ ' + result.message, 'success');
     toggleEditMode();
+    setTimeout(() => location.reload(), 1500);
   } catch (err) {
     showEditNotification('❌ Erro: ' + err.message, 'error');
   }

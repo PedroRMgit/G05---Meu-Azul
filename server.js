@@ -15,6 +15,12 @@ let projectIdCounter = 1;
 let users = [];
 let userIdCounter = 1;
 
+let historyLog = [];
+let historyIdCounter = 1;
+
+let notifications = [];
+let notifIdCounter = 1;
+
 app.post('/api/auth/register', (req, res) => {
   const { nome, email, senha, role } = req.body;
   if (!nome || !email || !senha || !role) {
@@ -63,10 +69,11 @@ app.get('/api/projects', (req, res) => {
 });
 
 app.post('/api/projects', (req, res) => {
-  const { nome, vertical, descricao, prazo, equipe, precisaMarketing, custo, lucro, responsavel, cViability, cImpact, cAreas, cAlignment, cInnovation } = req.body;
+  const { nome, vertical, descricao, prazo, equipe, precisaMarketing, custo, lucro, responsavel, status, cViability, cImpact, cAreas, cAlignment, cInnovation } = req.body;
   if (!nome || !vertical || !descricao || !prazo) {
     return res.status(400).json({ error: 'Campos obrigatórios: nome, vertical, descricao, prazo' });
   }
+  const agora = new Date().toISOString();
   const project = {
     id: projectIdCounter++,
     nome,
@@ -78,14 +85,18 @@ app.post('/api/projects', (req, res) => {
     custo: parseFloat(custo) || 0,
     lucro: parseFloat(lucro) || 0,
     responsavel: responsavel || '',
+    status: status || 'em_andamento',
     cViability: parseInt(cViability) || 3,
     cImpact: parseInt(cImpact) || 3,
     cAreas: parseInt(cAreas) || 3,
     cAlignment: parseInt(cAlignment) || 3,
     cInnovation: parseInt(cInnovation) || 3,
-    criadoEm: new Date().toISOString()
+    criadoEm: agora,
+    atualizadoEm: agora
   };
   projects.push(project);
+  addHistory(project.id, 'criacao', `Projeto "${project.nome}" foi criado`);
+  generateNotifications();
   res.status(201).json(project);
 });
 
@@ -93,9 +104,10 @@ app.put('/api/projects/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const index = projects.findIndex(p => p.id === id);
   if (index === -1) return res.status(404).json({ error: 'Projeto não encontrado' });
-  const { nome, vertical, descricao, prazo, equipe, precisaMarketing, custo, lucro, responsavel, cViability, cImpact, cAreas, cAlignment, cInnovation } = req.body;
+  const old = projects[index];
+  const { nome, vertical, descricao, prazo, equipe, precisaMarketing, custo, lucro, responsavel, status, cViability, cImpact, cAreas, cAlignment, cInnovation } = req.body;
   const updated = {
-    ...projects[index],
+    ...old,
     ...(nome && { nome }),
     ...(vertical && { vertical }),
     ...(descricao && { descricao }),
@@ -105,13 +117,23 @@ app.put('/api/projects/:id', (req, res) => {
     ...(custo !== undefined && { custo: parseFloat(custo) }),
     ...(lucro !== undefined && { lucro: parseFloat(lucro) }),
     ...(responsavel !== undefined && { responsavel }),
+    ...(status !== undefined && { status }),
     ...(cViability !== undefined && { cViability: parseInt(cViability) }),
     ...(cImpact !== undefined && { cImpact: parseInt(cImpact) }),
     ...(cAreas !== undefined && { cAreas: parseInt(cAreas) }),
     ...(cAlignment !== undefined && { cAlignment: parseInt(cAlignment) }),
-    ...(cInnovation !== undefined && { cInnovation: parseInt(cInnovation) })
+    ...(cInnovation !== undefined && { cInnovation: parseInt(cInnovation) }),
+    atualizadoEm: new Date().toISOString()
   };
+  const changes = [];
+  if (old.nome !== updated.nome) changes.push(`nome: "${old.nome}" → "${updated.nome}"`);
+  if (old.status !== updated.status) changes.push(`status: "${old.status}" → "${updated.status}"`);
+  if (old.responsavel !== updated.responsavel) changes.push(`responsável: "${old.responsavel}" → "${updated.responsavel}"`);
+  if (old.prazo !== updated.prazo) changes.push(`prazo alterado`);
+  if (changes.length === 0) changes.push('dados atualizados');
   projects[index] = updated;
+  addHistory(id, 'edicao', `Projeto "${updated.nome}" foi editado: ${changes.join('; ')}`);
+  generateNotifications();
   res.json(updated);
 });
 
@@ -119,7 +141,10 @@ app.delete('/api/projects/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const index = projects.findIndex(p => p.id === id);
   if (index === -1) return res.status(404).json({ error: 'Projeto não encontrado' });
+  const removed = projects[index];
   projects.splice(index, 1);
+  addHistory(id, 'exclusao', `Projeto "${removed.nome}" foi removido`);
+  generateNotifications();
   res.json({ message: 'Projeto removido' });
 });
 
@@ -600,6 +625,116 @@ app.post('/api/dev/git/push', (req, res) => {
   }
 });
 
+/* ─── History ─── */
+const STATUS_LABELS = {
+  em_andamento: 'Em andamento',
+  planejamento: 'Planejamento',
+  concluido: 'Concluído',
+  bloqueado: 'Bloqueado',
+  cancelado: 'Cancelado'
+};
+
+function addHistory(projectId, tipo, descricao) {
+  historyLog.push({
+    id: historyIdCounter++,
+    projectId,
+    tipo,
+    descricao,
+    usuario: 'Sistema',
+    data: new Date().toISOString()
+  });
+}
+
+app.get('/api/projects/:id/history', (req, res) => {
+  const id = parseInt(req.params.id);
+  const logs = historyLog.filter(h => h.projectId === id).sort((a, b) => new Date(b.data) - new Date(a.data));
+  res.json(logs);
+});
+
+/* ─── Notifications ─── */
+function generateNotifications() {
+  notifications = [];
+  notifIdCounter = 1;
+  const hoje = new Date();
+
+  for (const p of projects) {
+    const prazoDate = new Date(p.prazo + 'T23:59:59');
+    const diff = Math.ceil((prazoDate - hoje) / (1000 * 60 * 60 * 24));
+
+    if (diff < 0) {
+      notifications.push({
+        id: notifIdCounter++,
+        projectId: p.id,
+        tipo: 'critica',
+        mensagem: `"${p.nome}" está atrasado há ${Math.abs(diff)} dia(s)`,
+        lida: false,
+        data: new Date().toISOString()
+      });
+    } else if (diff <= 7) {
+      notifications.push({
+        id: notifIdCounter++,
+        projectId: p.id,
+        tipo: 'aviso',
+        mensagem: `"${p.nome}" vence em ${diff} dia(s)`,
+        lida: false,
+        data: new Date().toISOString()
+      });
+    }
+
+    if (p.precisaMarketing) {
+      notifications.push({
+        id: notifIdCounter++,
+        projectId: p.id,
+        tipo: 'info',
+        mensagem: `"${p.nome}" da vertical ${p.vertical} solicita apoio de marketing`,
+        lida: false,
+        data: new Date().toISOString()
+      });
+    }
+
+    if ((p.lucro || 0) > 50000) {
+      notifications.push({
+        id: notifIdCounter++,
+        projectId: p.id,
+        tipo: 'info',
+        mensagem: `"${p.nome}" tem alto potencial de faturamento (R$ ${(p.lucro || 0).toFixed(2)})`,
+        lida: false,
+        data: new Date().toISOString()
+      });
+    }
+  }
+
+  const respCount = {};
+  projects.forEach(p => {
+    if (p.responsavel) {
+      respCount[p.responsavel] = (respCount[p.responsavel] || 0) + 1;
+    }
+  });
+  for (const [resp, count] of Object.entries(respCount)) {
+    if (count >= 3) {
+      notifications.push({
+        id: notifIdCounter++,
+        projectId: null,
+        tipo: 'aviso',
+        mensagem: `${resp} está responsável por ${count} projetos`,
+        lida: false,
+        data: new Date().toISOString()
+      });
+    }
+  }
+}
+
+app.get('/api/notifications', (req, res) => {
+  generateNotifications();
+  res.json(notifications);
+});
+
+app.post('/api/notifications/read-all', (req, res) => {
+  notifications.forEach(n => { n.lida = true; });
+  res.json({ message: 'Todas notificações marcadas como lidas' });
+});
+
 app.listen(PORT, () => {
+  generateNotifications();
   console.log(`Meu Azul rodando em http://localhost:${PORT}`);
 });

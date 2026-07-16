@@ -246,6 +246,21 @@
         </div>
       </div>
 
+      <!-- ═══ NOTIFICATION BELL ═══ -->
+      <div id="notificationBell" style="position:fixed;top:1rem;right:1.5rem;z-index:999;display:none;cursor:pointer;" onclick="toggleNotificationPanel()">
+        <button class="btn btn-ghost btn-icon" style="font-size:1.2rem;position:relative;background:var(--bg-card);border:1px solid var(--border);border-radius:50%;width:40px;height:40px;">
+          🔔
+          <span id="notifBadge" style="position:absolute;top:-2px;right:-2px;background:var(--danger);color:white;font-size:0.65rem;border-radius:50%;width:18px;height:18px;display:none;align-items:center;justify-content:center;font-weight:700;"></span>
+        </button>
+        <div id="notifPanel" style="display:none;position:absolute;top:45px;right:0;width:360px;max-height:450px;overflow-y:auto;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-xl);padding:0.75rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">
+            <strong style="font-size:0.85rem;">Notificações</strong>
+            <button class="btn btn-ghost btn-xs" onclick="markAllNotifRead()">Marcar todas como lidas</button>
+          </div>
+          <div id="notifList"><p style="font-size:0.8rem;color:var(--text-muted);text-align:center;">Nenhuma notificação.</p></div>
+        </div>
+      </div>
+
       <!-- ═══ MARKETING (PROJETOS) ═══ -->
       <div id="page-projetos" class="page">
         <div class="page-header">
@@ -269,10 +284,15 @@
           </select>
           <select id="filterStatus" onchange="filterAndRenderProjects()">
             <option value="">Todos Status</option>
-            <option value="urgente">Urgente</option>
-            <option value="proximo">Próximo</option>
-            <option value="prazo">Dentro do Prazo</option>
+            <option value="urgente">Urgente (prazo)</option>
+            <option value="proximo">Próximo (prazo)</option>
+            <option value="prazo">OK (prazo)</option>
             <option value="atrasado">Atrasado</option>
+            <option value="em_andamento">🟢 Em andamento</option>
+            <option value="planejamento">🟡 Planejamento</option>
+            <option value="concluido">🔵 Concluído</option>
+            <option value="bloqueado">🔴 Bloqueado</option>
+            <option value="cancelado">⚫ Cancelado</option>
           </select>
           <select id="sortProjects" onchange="filterAndRenderProjects()">
             <option value="nome">Ordenar: Nome</option>
@@ -363,6 +383,16 @@
                 <input type="text" id="responsavel" required placeholder="Ex: João Silva">
               </div>
               <div class="form-group">
+                <label for="projectStatus">Status</label>
+                <select id="projectStatus">
+                  <option value="em_andamento">🟢 Em andamento</option>
+                  <option value="planejamento">🟡 Planejamento</option>
+                  <option value="concluido">🔵 Concluído</option>
+                  <option value="bloqueado">🔴 Bloqueado</option>
+                  <option value="cancelado">⚫ Cancelado</option>
+                </select>
+              </div>
+              <div class="form-group">
                 <label for="prazo">Prazo *</label>
                 <input type="date" id="prazo" required>
               </div>
@@ -421,6 +451,56 @@
         </div>
       </div>
 
+      <!-- ═══ DETALHES DO PROJETO ═══ -->
+      <div id="page-detalhes" class="page">
+        <div class="page-header">
+          <div class="page-header-left">
+            <button class="btn btn-ghost btn-sm" onclick="navegar('projetos')" style="margin-bottom:0.25rem;">← Voltar para Projetos</button>
+            <h1 id="detailNome">Projeto</h1>
+            <p class="page-subtitle" id="detailSubtitle">Detalhes do projeto</p>
+          </div>
+        </div>
+        <div id="detailContent" style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+          <div class="section-block" style="grid-column:1/-1;">
+            <div style="display:flex;gap:2rem;flex-wrap:wrap;">
+              <div style="flex:1;min-width:200px;"><strong>Vertical:</strong> <span id="detailVertical"></span></div>
+              <div style="flex:1;min-width:200px;"><strong>Responsável:</strong> <span id="detailResponsavel"></span></div>
+              <div style="flex:1;min-width:200px;"><strong>Status:</strong> <span id="detailStatus"></span></div>
+              <div style="flex:1;min-width:200px;"><strong>Prazo:</strong> <span id="detailPrazo"></span></div>
+              <div style="flex:1;min-width:200px;"><strong>Dias Restantes:</strong> <span id="detailDias"></span></div>
+              <div style="flex:1;min-width:200px;"><strong>Custo:</strong> <span id="detailCusto"></span></div>
+              <div style="flex:1;min-width:200px;"><strong>Faturamento:</strong> <span id="detailLucro"></span></div>
+              <div style="flex:1;min-width:200px;"><strong>Equipe:</strong> <span id="detailEquipe"></span></div>
+              <div style="flex:1;min-width:200px;"><strong>Prioridade IA:</strong> <span id="detailPrioridade"></span></div>
+              <div style="flex:1;min-width:200px;"><strong>Marketing:</strong> <span id="detailMarketing"></span></div>
+            </div>
+            <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+              <strong>Descrição:</strong>
+              <p id="detailDescricao" style="margin-top:0.35rem;font-size:0.9rem;color:var(--text-secondary);line-height:1.6;"></p>
+            </div>
+            <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);">
+              <strong>Risco calculado:</strong>
+              <div id="detailRisco" style="margin-top:0.35rem;"></div>
+            </div>
+          </div>
+          <div class="section-block">
+            <h2>📋 Histórico</h2>
+            <div id="detailHistory" style="max-height:300px;overflow-y:auto;">
+              <p class="empty-state">Nenhum histórico disponível.</p>
+            </div>
+          </div>
+          <div class="section-block">
+            <h2>📊 Métricas do Projeto</h2>
+            <div id="detailMetricas">
+              <p class="empty-state">Carregando métricas...</p>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:0.5rem;">
+          <button class="btn btn-secondary" onclick="navegar('projetos')">← Voltar</button>
+        </div>
+      </div>
+
       <div id="editModeBar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:var(--primary);color:white;padding:0.5rem 1rem;display:none;align-items:center;gap:0.75rem;box-shadow:0 2px 12px rgba(0,0,0,0.3);">
         <span style="font-weight:700;font-size:0.9rem;">🔧 MODO EDIÇÃO</span>
         <span style="font-size:0.78rem;opacity:0.8;flex:1;">Clique nos textos para editar • Arraste itens para reordenar</span>
@@ -454,6 +534,16 @@
             <input type="text" id="editResponsavel">
           </div>
           <div class="form-group">
+            <label for="editProjectStatus">Status</label>
+            <select id="editProjectStatus">
+              <option value="em_andamento">🟢 Em andamento</option>
+              <option value="planejamento">🟡 Planejamento</option>
+              <option value="concluido">🔵 Concluído</option>
+              <option value="bloqueado">🔴 Bloqueado</option>
+              <option value="cancelado">⚫ Cancelado</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label for="editPrazo">Prazo</label>
             <input type="date" id="editPrazo">
           </div>
@@ -477,6 +567,7 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-outline" onclick="closeEditModal()">Cancelar</button>
+        <button class="btn btn-danger" onclick="deleteEditProject()">🗑️ Excluir</button>
         <button class="btn btn-primary" onclick="saveEditProject()">Salvar</button>
       </div>
     </div>
