@@ -173,7 +173,6 @@ class AIAgent {
           }
         }
       }
-      if (texto.includes(lowerKw)) s++;
       const norm = Math.min(5, Math.max(1, Math.round(s / 2) + 1));
       return norm;
     }
