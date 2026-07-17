@@ -1,4 +1,4 @@
-#Integrantes
+Integrantes
 
 - Pedro
 - Bricio
